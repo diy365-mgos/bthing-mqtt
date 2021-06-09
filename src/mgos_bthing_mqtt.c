@@ -65,7 +65,7 @@ void mg_bthing_mqtt_on_set_state(struct mg_connection *nc, const char *topic,
   struct mg_bthing_mqtt_item *item = (struct mg_bthing_mqtt_item *)ud;
   if (!msg || !item || !item->enabled) return;
 
-  mgos_bvar_t state = mgos_bvar_json_scanf(json);
+  mgos_bvar_t state = mgos_bvar_json_scanf(msg);
 
   if (s_mqtt_mode == MG_BTHING_MQTT_MODE_SINGLE) {
     mgos_bthing_set_state(item->thing, state);

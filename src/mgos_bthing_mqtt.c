@@ -125,6 +125,30 @@ static void mg_bthing_mqtt_on_created(int ev, void *ev_data, void *userdata) {
 
 #if MGOS_BTHING_HAVE_SENSORS
 
+static bool mg_bthing_mqtt_pub_state(const char *topic, mgos_bthing_t thing) {
+  if (topic) {
+    char *payload = NULL;
+    bool free_payload = false;
+
+    mgos_bvarc_t state = mgos_bthing_get_state(thing);
+    if (mgos_bvar_get_type(state) == MGOS_BVAR_TYPE_STR) {
+      payload = (char *)mgos_bvar_get_str(state);
+      if (!mg_is_plain_string(payload, strlen(payload))) payload = NULL;
+    }
+    if (!payload) {
+      payload = json_asprintf("%M", json_printf_bvar, state);
+      free_payload = true;
+    }
+    if (payload) {
+      int ret = mg_bthing_mqtt_pub(topic, payload, mgos_sys_config_get_bthing_mqtt_retain());
+      if (free_payload) free(payload);
+      return (ret > 0);
+    }
+  }
+  LOG(LL_ERROR, ("Error publishing '%s' state on topic %s.", mgos_bthing_get_id(thing), (topic ? topic : "")));
+  return false;
+}
+
 static void mg_bthing_mqtt_on_state_changed(int ev, void *ev_data, void *userdata) {
   if (!mgos_mqtt_global_is_connected()) return;
   
@@ -141,25 +165,7 @@ static void mg_bthing_mqtt_on_state_changed(int ev, void *ev_data, void *userdat
     topic = NULL;
   }
 
-  if (!topic) return;
- 
-  char *payload = NULL;
-  bool free_payload = false;
-  mgos_bvarc_t state = mgos_bthing_get_state(thing);
-  if (mgos_bvar_get_type(state) == MGOS_BVAR_TYPE_STR) {
-    payload = (char *)mgos_bvar_get_str(state);
-    if (!mg_is_plain_string(payload, strlen(payload))) payload = NULL;
-  }
-  if (!payload) {
-    payload = json_asprintf("%M", json_printf_bvar, state);
-    free_payload = true;
-  }
-
-  if (payload && (mg_bthing_mqtt_pub(topic, payload, mgos_sys_config_get_bthing_mqtt_retain()) <= 0)) {
-    LOG(LL_ERROR, ("Error publishing '%s' state on %s.", mgos_bthing_get_id(thing), topic));
-  }
-
-  if (free_payload) free(payload);
+  mg_bthing_mqtt_pub_state(topic, thing);
 
   (void) userdata;
   (void) ev;

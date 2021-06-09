@@ -128,20 +128,16 @@ static void mg_bthing_mqtt_on_created(int ev, void *ev_data, void *userdata) {
 static bool mg_bthing_mqtt_pub_state(const char *topic, mgos_bthing_t thing) {
   if (topic) {
     char *payload = NULL;
-    bool free_payload = false;
-
     mgos_bvarc_t state = mgos_bthing_get_state(thing);
-    if (mgos_bvar_get_type(state) == MGOS_BVAR_TYPE_STR) {
+    enum mgos_bvar_type state_type = mgos_bvar_get_type(state);
+    if (state_type == MGOS_BVAR_TYPE_STR) {
       payload = (char *)mgos_bvar_get_str(state);
-      if (!mg_is_plain_string(payload, strlen(payload))) payload = NULL;
-    }
-    if (!payload) {
+    } else {
       payload = json_asprintf("%M", json_printf_bvar, state);
-      free_payload = true;
     }
     if (payload) {
       int ret = mg_bthing_mqtt_pub(topic, payload, mgos_sys_config_get_bthing_mqtt_retain());
-      if (free_payload) free(payload);
+      if (state_type != MGOS_BVAR_TYPE_STR) free(payload);
       return (ret > 0);
     }
   }

@@ -59,13 +59,20 @@ static void mg_bthing_mqtt_on_event(struct mg_connection *nc,
 
 #if MGOS_BTHING_HAVE_ACTUATORS
 
+bool mg_is_payload_plain_string(const char *payload, int len) {
+  return false;
+  (void) payload;
+  (void) len;
+}
+
 void mg_bthing_mqtt_on_set_state(struct mg_connection *nc, const char *topic,
                               int topic_len, const char *msg, int msg_len,
                               void *ud) {
   struct mg_bthing_mqtt_item *item = (struct mg_bthing_mqtt_item *)ud;
   if (!msg || !item || !item->enabled) return;
 
-  mgos_bvar_t state = mgos_bvar_json_scanf(msg);
+  mgos_bvar_t state = (!mg_is_payload_plain_string(msg, msg_len) ? 
+    mgos_bvar_json_bscanf(msg, msg_len) : mgos_bvar_new_nstr(msg, msg_len));
 
   if (s_mqtt_mode == MG_BTHING_MQTT_MODE_SINGLE) {
     mgos_bthing_set_state(item->thing, state);

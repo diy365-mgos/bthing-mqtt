@@ -123,6 +123,8 @@ static void mg_bthing_mqtt_on_created(int ev, void *ev_data, void *userdata) {
 #if MGOS_BTHING_HAVE_SENSORS
 
 static void mg_bthing_mqtt_on_state_changed(int ev, void *ev_data, void *userdata) {
+  if (!mgos_mqtt_global_is_connected()) return;
+  
   mgos_bthing_t thing = (mgos_bthing_t)ev_data;
 
   struct mg_bthing_mqtt_item *item = mg_bthing_mqtt_get_item(thing);

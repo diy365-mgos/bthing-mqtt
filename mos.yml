@@ -1,0 +1,39 @@
+author: DIY365
+type: lib
+description: Mongoose-OS library that allows you to easily enable MQTT over bThings.
+version: 1.0
+
+sources:
+  - src
+
+includes:
+  - include
+
+filesystem:
+  - fs
+
+config_schema:
+  - ["bthing.mqtt", "o", {title: "bThing MQTT settings"}]
+  - ["bthing.mqtt.birth_message", "s", "online", {title: "Default MQTT birth message"}]
+  - ["bthing.mqtt.qos", i, 0, {title: "Default MQTT QOS value for publishing messages"}]
+  - ["bthing.mqtt.retain", b, false, {title: "Default MQTT retain value for publishing messages"}]
+  - ["bthing.mqtt.base_topic", s, "$bthings/${device_id}/${bthing_id}", {title: "The MQTT base topic"}]
+  - ["bthing.mqtt.pub", "o", {title: "MQTT publish settings"}]
+  - ["bthing.mqtt.pub.topic", s, "state", {title: "The the topic suffix to be used for publishing states"}]
+  - ["bthing.mqtt.pub.allow_partial", b, false, {title: "If true, only changed states are published."}]
+  - ["bthing.mqtt.sub", "o", {title: "MQTT subcribe settings"}]
+  - ["bthing.mqtt.sub.topic", s, "set", {title: "The the topic suffix to be used for subscribing to set-state topic"}]
+
+  - ["mqtt.enable", true]
+  - ["mqtt.will_topic", "$bthings/${device_id}/availability"]
+  - ["mqtt.will_message", "offline"]
+
+libs:
+  - origin: https://github.com/mongoose-os-libs/mqtt
+  - origin: https://github.com/diy365-mgos/bthing
+  - origin: https://github.com/diy365-mgos/bvar-json
+
+tags:
+  - c
+
+manifest_version: 2017-09-29

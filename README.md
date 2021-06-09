@@ -6,7 +6,7 @@ Mongoose-OS library that allows you allows you to easily enable MQTT over [bThin
 ```c
 bool mgos_bthing_mqtt_enable(mgos_bthing_t thing, bool enable);
 ```
-Enables MQTT messages for a bThing. Returns `true` on success, or `false` otherwise.
+Enables or disables MQTT messages for a bThing. Returns `true` on success, or `false` otherwise.
 
 |Parameter||
 |--|--|

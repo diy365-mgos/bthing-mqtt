@@ -23,12 +23,13 @@ int mg_bthing_mqtt_pubv(const char *topic, bool retain, const char *json_fmt, va
 
 char *mg_bthing_mqtt_build_topic(const char *topic, mgos_bthing_t thing) {
   if (topic) {
-    char *nwt = NULL;
-    if (mg_bthing_sreplace(topic, MGOS_BTHING_ENV_DEVICEID, mgos_sys_config_get_device_id(), &nwt) || 
-        (thing && mg_bthing_sreplace(topic, MGOS_BTHING_ENV_THINGID, mgos_bthing_get_id(thing), &nwt))) {
-      return nwt;
+    char *new_topic = NULL;
+    if (mgos_bthing_sreplaces(topic, &new_topic, (thing ? 2 : 1),
+          MGOS_BTHING_ENV_DEVICEID, mgos_sys_config_get_device_id(),
+          MGOS_BTHING_ENV_THINGID, mgos_bthing_get_id(thing))) {
+      return new_topic;
     }
-    free(nwt);
+    free(new_topic);
   }
   return NULL;
 }

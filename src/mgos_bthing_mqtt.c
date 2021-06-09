@@ -138,7 +138,7 @@ static void mg_bthing_mqtt_on_state_changed(int ev, void *ev_data, void *userdat
  
   char *json = json_asprintf("%M", json_printf_bvar, mgos_bthing_get_state(thing));
   if (topic && json && (mg_bthing_mqtt_pub(topic, json, mgos_sys_config_get_bthing_mqtt_retain()) <= 0)) {
-    LOG(LL_ERROR, ("Error publishing '%s' state on %s." mgos_bthing_get_id(thing), topic));
+    LOG(LL_ERROR, ("Error publishing '%s' state on %s.", mgos_bthing_get_id(thing), topic));
   }
   free(json);
 

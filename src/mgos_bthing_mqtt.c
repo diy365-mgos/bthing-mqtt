@@ -147,7 +147,7 @@ static void mg_bthing_mqtt_on_state_changed(int ev, void *ev_data, void *userdat
   bool free_payload = false;
   mgos_bvarc_t state = mgos_bthing_get_state(thing);
   if (mgos_bvar_get_type(state) == MGOS_BVAR_TYPE_STR) {
-    payload = mgos_bvar_get_str(state);
+    payload = (char *)mgos_bvar_get_str(state);
     if (!mg_is_plain_string(payload, strlen(payload))) payload = NULL;
   }
   if (!payload) {

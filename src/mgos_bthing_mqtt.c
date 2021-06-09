@@ -34,14 +34,6 @@ bool mg_bthing_mqtt_birth_message_pub() {
   return (msg_id > 0);
 }
 
-#if MGOS_BTHING_HAVE_SENSORS
-
-#endif // MGOS_BTHING_HAVE_SENSORS
-
-#if MGOS_BTHING_HAVE_ACTUATORS
-
-#endif // MGOS_BTHING_HAVE_ACTUATORS
-
 static void mg_bthing_mqtt_on_event(struct mg_connection *nc,
                                      int ev,
                                      void *ev_data,
@@ -57,13 +49,17 @@ static void mg_bthing_mqtt_on_event(struct mg_connection *nc,
   (void) user_data;
 }
 
-#if MGOS_BTHING_HAVE_ACTUATORS
+#if MGOS_BTHING_HAVE_SENSORS
 
-bool mg_is_payload_plain_string(const char *payload, int len) {
+bool mg_is_plain_string(const char *value, int value_len) {
   return false;
-  (void) payload;
-  (void) len;
+  (void) value;
+  (void) value_len;
 }
+
+#endif // MGOS_BTHING_HAVE_SENSORS
+
+#if MGOS_BTHING_HAVE_ACTUATORS
 
 void mg_bthing_mqtt_on_set_state(struct mg_connection *nc, const char *topic,
                               int topic_len, const char *msg, int msg_len,
@@ -71,7 +67,7 @@ void mg_bthing_mqtt_on_set_state(struct mg_connection *nc, const char *topic,
   struct mg_bthing_mqtt_item *item = (struct mg_bthing_mqtt_item *)ud;
   if (!msg || !item || !item->enabled) return;
 
-  mgos_bvar_t state = (!mg_is_payload_plain_string(msg, msg_len) ? 
+  mgos_bvar_t state = (!mg_is_plain_string(msg, msg_len) ? 
     mgos_bvar_json_bscanf(msg, msg_len) : mgos_bvar_new_nstr(msg, msg_len));
 
   if (s_mqtt_mode == MG_BTHING_MQTT_MODE_SINGLE) {
@@ -144,12 +140,26 @@ static void mg_bthing_mqtt_on_state_changed(int ev, void *ev_data, void *userdat
     // TODO: assing global topic
     topic = NULL;
   }
+
+  if (!topic) return;
  
-  char *json = json_asprintf("%M", json_printf_bvar, mgos_bthing_get_state(thing));
-  if (topic && json && (mg_bthing_mqtt_pub(topic, json, mgos_sys_config_get_bthing_mqtt_retain()) <= 0)) {
+  char *payload = NULL;
+  bool free_payload = false;
+  mgos_bvarc_t state = mgos_bthing_get_state(thing);
+  if (mgos_bvar_get_type(state) == MGOS_BVAR_TYPE_STR) {
+    payload = mgos_bvar_get_str(state);
+    if (!mg_is_plain_string(payload, strlen(payload))) payload = NULL;
+  }
+  if (!payload) {
+    payload = json_asprintf("%M", json_printf_bvar, state);
+    free_payload = true;
+  }
+
+  if (payload && (mg_bthing_mqtt_pub(topic, payload, mgos_sys_config_get_bthing_mqtt_retain()) <= 0)) {
     LOG(LL_ERROR, ("Error publishing '%s' state on %s.", mgos_bthing_get_id(thing), topic));
   }
-  free(json);
+
+  if (free_payload) free(payload);
 
   (void) userdata;
   (void) ev;

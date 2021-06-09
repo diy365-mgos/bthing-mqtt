@@ -49,16 +49,6 @@ static void mg_bthing_mqtt_on_event(struct mg_connection *nc,
   (void) user_data;
 }
 
-#if MGOS_BTHING_HAVE_SENSORS
-
-bool mg_is_plain_string(const char *value, int value_len) {
-  return false;
-  (void) value;
-  (void) value_len;
-}
-
-#endif // MGOS_BTHING_HAVE_SENSORS
-
 #if MGOS_BTHING_HAVE_ACTUATORS
 
 void mg_bthing_mqtt_on_set_state(struct mg_connection *nc, const char *topic,
@@ -67,7 +57,7 @@ void mg_bthing_mqtt_on_set_state(struct mg_connection *nc, const char *topic,
   struct mg_bthing_mqtt_item *item = (struct mg_bthing_mqtt_item *)ud;
   if (!msg || !item || !item->enabled) return;
 
-  mgos_bvar_t state = (!mg_is_plain_string(msg, msg_len) ? 
+  mgos_bvar_t state = (!mgos_bvar_json_can_bscanf(msg, msg_len) ? 
     mgos_bvar_json_bscanf(msg, msg_len) : mgos_bvar_new_nstr(msg, msg_len));
 
   if (s_mqtt_mode == MG_BTHING_MQTT_MODE_SINGLE) {

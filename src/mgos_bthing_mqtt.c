@@ -97,7 +97,7 @@ static void mg_bthing_mqtt_on_created(int ev, void *ev_data, void *userdata) {
 
     item->pub_topic = mg_bthing_mqtt_build_pub_topic(thing);
     if (item->pub_topic) {
-      LOG(LL_INFO, ("bThing '%s' is going to publish state updates here: %s", mgos_bthing_get_id(thing), item->pub_topic));
+      LOG(LL_DEBUG, ("bThing '%s' is going to publish state updates here: %s", mgos_bthing_get_id(thing), item->pub_topic));
     } else {
       LOG(LL_ERROR, ("Error: '%s' won't publish state updates becuase an invalid topic.", mgos_bthing_get_id(thing)));
     }
@@ -108,7 +108,7 @@ static void mg_bthing_mqtt_on_created(int ev, void *ev_data, void *userdata) {
       item->sub_topic = mg_bthing_mqtt_build_sub_topic(thing);
       if (item->sub_topic) {
         mgos_mqtt_sub(item->sub_topic, mg_bthing_mqtt_on_set_state, item);
-        LOG(LL_INFO, ("bThing '%s' is listening to set-state messages here: %s", mgos_bthing_get_id(thing), item->sub_topic));
+        LOG(LL_DEBUG, ("bThing '%s' is listening to set-state messages here: %s", mgos_bthing_get_id(thing), item->sub_topic));
       } else {
         LOG(LL_ERROR, ("Error: '%s' won't receive set-state messages becuase an invalid topic.", mgos_bthing_get_id(thing)));
       }

@@ -16,11 +16,13 @@ enum mg_bthing_mqtt_mode {
   MG_BTHING_MQTT_MODE_AGGREGATE
 };
 
-static struct mgos_bthing_mqtt_ctx {
+struct mgos_bthing_mqtt_ctx {
   enum mg_bthing_mqtt_mode pub_mode;
   enum mg_bthing_mqtt_mode sub_mode;
   bool publishing;
-} *s_context;
+};
+
+static struct mgos_bthing_mqtt_ctx *s_context = NULL;
 
 static void mg_bthing_mqtt_on_set_state(struct mg_connection *, const char *, int, const char *, int, void *);
 

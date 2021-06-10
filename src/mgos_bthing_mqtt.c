@@ -12,7 +12,8 @@ enum mg_bthing_mqtt_mode {
   MG_BTHING_MQTT_MODE_AGGREGATE,
 };
 
-static enum mg_bthing_mqtt_mode s_mqtt_mode;
+static enum mg_bthing_mqtt_mode s_mqtt_pub_mode;
+static enum mg_bthing_mqtt_mode s_mqtt_sub_mode;
 
 bool mgos_bthing_mqtt_enable(mgos_bthing_t thing, bool enable) {
   struct mg_bthing_mqtt_item *item = mg_bthing_mqtt_get_item(thing);
@@ -57,10 +58,11 @@ void mg_bthing_mqtt_on_set_state(struct mg_connection *nc, const char *topic,
   struct mg_bthing_mqtt_item *item = (struct mg_bthing_mqtt_item *)ud;
   if (!msg || !item || !item->enabled) return;
 
-  mgos_bvar_t state = (!mgos_bvar_json_can_bscanf(msg, msg_len) ? 
-    mgos_bvar_json_bscanf(msg, msg_len) : mgos_bvar_new_nstr(msg, msg_len));
+  mgos_bvar_t state;
+  if (!mgos_bvar_json_try_bscanf(msg, msg_len, &state))  
+    state = mgos_bvar_new_nstr(msg, msg_len));
 
-  if (s_mqtt_mode == MG_BTHING_MQTT_MODE_SINGLE) {
+  if (s_mqtt_sub_mode == MG_BTHING_MQTT_MODE_SINGLE) {
     mgos_bthing_set_state(item->thing, state);
   } else {
     //TODO: manage set-state in aggretate mode
@@ -86,29 +88,26 @@ static void mg_bthing_mqtt_on_created(int ev, void *ev_data, void *userdata) {
   // add new item to the global item list
   mg_bthing_mqtt_add_item(item);
 
-  if (s_mqtt_mode == MG_BTHING_MQTT_MODE_SINGLE) {
-
-    item->pub_topic = mg_bthing_mqtt_build_pub_topic(thing);
-    if (item->pub_topic) {
+  if (s_mqtt_pub_mode == MG_BTHING_MQTT_MODE_SINGLE) {
+    if (mg_bthing_sreplace(mgos_sys_config_get_bthing_mqtt_pub_topic(), MGOS_BTHING_ENV_THINGID, mgos_bthing_get_id(thing), &item->pub_topic)) {
       LOG(LL_DEBUG, ("bThing '%s' is going to publish state updates here: %s", mgos_bthing_get_id(thing), item->pub_topic));
     } else {
-      LOG(LL_ERROR, ("Error: '%s' won't publish state updates becuase an invalid topic.", mgos_bthing_get_id(thing)));
+      LOG(LL_ERROR, ("Error: '%s' won't publish state updates becuase an invalid [bthing.mqtt.pub.topic] cfg.", mgos_bthing_get_id(thing)));
     }
+  }
 
-    #if MGOS_BTHING_HAVE_ACTUATORS
-
+  #if MGOS_BTHING_HAVE_ACTUATORS
+  if (s_mqtt_sub_mode == MG_BTHING_MQTT_MODE_SINGLE) {
     if (mgos_bthing_is_typeof(thing, MGOS_BTHING_TYPE_ACTUATOR)) {
-      item->sub_topic = mg_bthing_mqtt_build_sub_topic(thing);
-      if (item->sub_topic) {
+      if (mg_bthing_sreplace(mgos_sys_config_get_bthing_mqtt_sub_topic(), MGOS_BTHING_ENV_THINGID, mgos_bthing_get_id(thing), &item->sub_topic)) {
         mgos_mqtt_sub(item->sub_topic, mg_bthing_mqtt_on_set_state, item);
         LOG(LL_DEBUG, ("bThing '%s' is listening to set-state messages here: %s", mgos_bthing_get_id(thing), item->sub_topic));
       } else {
-        LOG(LL_ERROR, ("Error: '%s' won't receive set-state messages becuase an invalid topic.", mgos_bthing_get_id(thing)));
+        LOG(LL_ERROR, ("Error: '%s' won't receive set-state messages becuase an invalid [bthing.mqtt.sub.topic] cfg.", mgos_bthing_get_id(thing)));
       }
     }
-
-    #endif // MGOS_BTHING_HAVE_ACTUATORS
   }
+  #endif // MGOS_BTHING_HAVE_ACTUATORS
 
   mgos_bthing_mqtt_enable(thing, true);
 }
@@ -144,7 +143,7 @@ static void mg_bthing_mqtt_on_state_changed(int ev, void *ev_data, void *userdat
   if (!item || !item->enabled) return;  
 
   const char* topic = NULL;
-  if (s_mqtt_mode == MG_BTHING_MQTT_MODE_SINGLE) {
+  if (s_mqtt_pub_mode == MG_BTHING_MQTT_MODE_SINGLE) {
     topic = item->pub_topic;
   } else {
     // TODO: assing global topic
@@ -161,15 +160,40 @@ static void mg_bthing_mqtt_on_state_changed(int ev, void *ev_data, void *userdat
 
 bool mgos_bthing_mqtt_init() {
 
-  // replace $device_id placehoder/s in will_topic 
-  char *will_topic = mg_bthing_mqtt_build_topic(mgos_sys_config_get_mqtt_will_topic(), NULL);
-  if (will_topic) {
-    LOG(LL_DEBUG, ("MQTT will topic updated to %s", will_topic));
-    mgos_sys_config_set_mqtt_will_topic(will_topic);
-    free(will_topic);
+  // try to replace $device_id placehoder in will_topic 
+  char *topic = mg_bthing_mqtt_build_device_topic(mgos_sys_config_get_mqtt_will_topic());
+  if (topic) {
+    LOG(LL_DEBUG, ("[mqtt.will_topic] cfg updated to %s", topic));
+    mgos_sys_config_set_mqtt_will_topic(topic);
+    free(topic);
   }
 
-  s_mqtt_mode = MG_BTHING_MQTT_MODE_SINGLE;
+  // try to replace $device_id placehoder in disco_topic 
+  topic = mg_bthing_mqtt_build_device_topic(mgos_sys_config_get_bthing_mqtt_disco_topic());
+  if (topic) {
+    LOG(LL_DEBUG, ("[bthing.mqtt.disco_topic] cfg updated to %s", topic));
+    mgos_sys_config_set_bthing_mqtt_disco_topic(topic);
+    free(topic);
+  }
+
+  // try to replace $device_id placehoder in pub_topic 
+  topic = mg_bthing_mqtt_build_device_topic(mgos_sys_config_get_bthing_mqtt_pub_topic());
+  if (topic) {
+    LOG(LL_DEBUG, ("[bthing.mqtt.pub.topic] cfg updated to %s", topic));
+    mgos_sys_config_set_bthing_mqtt_pub_topic(topic);
+    free(topic);
+  }
+
+  // try to replace $device_id placehoder in pub_topic 
+  topic = mg_bthing_mqtt_build_device_topic(mgos_sys_config_get_bthing_mqtt_sub_topic());
+  if (topic) {
+    LOG(LL_DEBUG, ("[bthing.mqtt.sub.topic] cfg updated to %s", topic));
+    mgos_sys_config_set_bthing_mqtt_sub_topic(topic);
+    free(topic);
+  }
+
+  s_mqtt_pub_mode = MG_BTHING_MQTT_MODE_SINGLE;
+  s_mqtt_sub_mode = MG_BTHING_MQTT_MODE_SINGLE;
 
   if (!mgos_event_add_handler(MGOS_EV_BTHING_CREATED, mg_bthing_mqtt_on_created, NULL)) {
     LOG(LL_ERROR, ("Error registering MGOS_EV_BTHING_CREATED handler."));

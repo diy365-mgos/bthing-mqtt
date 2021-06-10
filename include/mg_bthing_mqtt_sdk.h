@@ -39,10 +39,7 @@ int mg_bthing_mqtt_pub(const char *topic, const char *msg, bool retain);
 int mg_bthing_mqtt_pubf(const char *topic, bool retain, const char *json_fmt, ...);
 int mg_bthing_mqtt_pubv(const char *topic, bool retain, const char *json_fmt, va_list ap);
 
-char *mg_bthing_mqtt_build_topic(const char *topic, mgos_bthing_t thing);
-
-char *mg_bthing_mqtt_build_pub_topic(mgos_bthing_t thing);
-char *mg_bthing_mqtt_build_sub_topic(mgos_bthing_t thing);
+char *mg_bthing_mqtt_build_device_topic(const char *topic);
 
 void mg_bthing_mqtt_add_item(struct mg_bthing_mqtt_item *item);
 struct mg_bthing_mqtt_item *mg_bthing_mqtt_get_item(mgos_bthing_t thing);

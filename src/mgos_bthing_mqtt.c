@@ -89,7 +89,7 @@ static void mg_bthing_mqtt_on_created(int ev, void *ev_data, void *userdata) {
   mg_bthing_mqtt_add_item(item);
 
   if (s_mqtt_pub_mode == MG_BTHING_MQTT_MODE_SINGLE) {
-    if (mg_bthing_sreplace(mgos_sys_config_get_bthing_mqtt_pub_topic(), MGOS_BTHING_ENV_THINGID, mgos_bthing_get_id(thing), &item->pub_topic)) {
+    if (mg_bthing_sreplace(mgos_sys_config_get_bthing_mqtt_pub_topic(), MGOS_BTHING_ENV_THINGID, mgos_bthing_get_id(thing), &(item->pub_topic))) {
       LOG(LL_DEBUG, ("bThing '%s' is going to publish state updates here: %s", mgos_bthing_get_id(thing), item->pub_topic));
     } else {
       LOG(LL_ERROR, ("Error: '%s' won't publish state updates becuase an invalid [bthing.mqtt.pub.topic] cfg.", mgos_bthing_get_id(thing)));
@@ -99,7 +99,7 @@ static void mg_bthing_mqtt_on_created(int ev, void *ev_data, void *userdata) {
   #if MGOS_BTHING_HAVE_ACTUATORS
   if (s_mqtt_sub_mode == MG_BTHING_MQTT_MODE_SINGLE) {
     if (mgos_bthing_is_typeof(thing, MGOS_BTHING_TYPE_ACTUATOR)) {
-      if (mg_bthing_sreplace(mgos_sys_config_get_bthing_mqtt_sub_topic(), MGOS_BTHING_ENV_THINGID, mgos_bthing_get_id(thing), &item->sub_topic)) {
+      if (mg_bthing_sreplace(mgos_sys_config_get_bthing_mqtt_sub_topic(), MGOS_BTHING_ENV_THINGID, mgos_bthing_get_id(thing), &(item->sub_topic))) {
         mgos_mqtt_sub(item->sub_topic, mg_bthing_mqtt_on_set_state, item);
         LOG(LL_DEBUG, ("bThing '%s' is listening to set-state messages here: %s", mgos_bthing_get_id(thing), item->sub_topic));
       } else {

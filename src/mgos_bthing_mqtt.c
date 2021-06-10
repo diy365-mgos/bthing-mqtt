@@ -60,7 +60,7 @@ void mg_bthing_mqtt_on_set_state(struct mg_connection *nc, const char *topic,
 
   mgos_bvar_t state;
   if (!mgos_bvar_json_try_bscanf(msg, msg_len, &state))  
-    state = mgos_bvar_new_nstr(msg, msg_len));
+    state = mgos_bvar_new_nstr(msg, msg_len);
 
   if (s_mqtt_sub_mode == MG_BTHING_MQTT_MODE_SINGLE) {
     mgos_bthing_set_state(item->thing, state);

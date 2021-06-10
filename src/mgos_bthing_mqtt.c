@@ -2,6 +2,7 @@
 #include "mgos_bthing_mqtt.h"
 #include "mg_bthing_mqtt_sdk.h"
 #include "mgos_bvar_json.h"
+#include "mgos_bvar_dic.h"
 
 #ifdef MGOS_HAVE_MJS
 #include "mjs.h"

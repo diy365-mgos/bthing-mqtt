@@ -15,6 +15,8 @@ enum mg_bthing_mqtt_mode {
 static enum mg_bthing_mqtt_mode s_mqtt_pub_mode;
 static enum mg_bthing_mqtt_mode s_mqtt_sub_mode;
 
+static void mg_bthing_mqtt_on_set_state(struct mg_connection *, const char *, int, const char *, int, void *);
+
 bool mgos_bthing_mqtt_enable(mgos_bthing_t thing, bool enable) {
   struct mg_bthing_mqtt_item *item = mg_bthing_mqtt_get_item(thing);
   if (!item) return false;

@@ -4,7 +4,7 @@ description: Mongoose-OS library that allows you to easily enable MQTT over bThi
 version: 1.0
 
 build_vars:
-  MGOS_BTHING_MQTT_AGGREGATE_MODE: 0
+  MGOS_BTHING_MQTT_AGGREGATE_MODE: "single"
 
 sources:
   - src
@@ -37,7 +37,7 @@ libs:
   - origin: https://github.com/diy365-mgos/bvar-json
 
 conds:
-  - when: build_vars.MGOS_BTHING_MQTT_AGGREGATE_MODE == 1
+  - when: build_vars.MGOS_BTHING_MQTT_MODE == "aggregate"
     apply:
       cdefs:
         MGOS_BTHING_MQTT_AGGREGATE_MODE: 1

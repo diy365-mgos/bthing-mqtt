@@ -184,7 +184,7 @@ static void mg_bthing_mqtt_on_state_changed(int ev, void *ev_data, void *userdat
     mgos_bthing_t thing;
     mgos_bthing_enum_t things = mgos_bthing_get_all();
     while (mgos_bthing_get_next(&things, &thing)) {
-      if (!mgos_bvar_add_key(state, mgos_bthing_get_id(thing), mgos_bthing_get_state(thing))) {
+      if (!mgos_bvar_add_key(state, mgos_bthing_get_id(thing), (mgos_bvar_t)mgos_bthing_get_state(thing))) {
         LOG(LL_ERROR, ("Error adding '%s' to the aggregate state.", mgos_bthing_get_id(thing)));
       }
     }

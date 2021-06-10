@@ -16,13 +16,11 @@ enum mg_bthing_mqtt_mode {
   MG_BTHING_MQTT_MODE_AGGREGATE
 };
 
-struct mgos_bthing_mqtt_ctx {
+static struct mgos_bthing_mqtt_ctx {
   enum mg_bthing_mqtt_mode pub_mode;
   enum mg_bthing_mqtt_mode sub_mode;
   bool publishing;
-};
-
-static struct mgos_bthing_mqtt_ctx s_context;
+} s_context;
 
 static void mg_bthing_mqtt_on_set_state(struct mg_connection *, const char *, int, const char *, int, void *);
 
@@ -227,7 +225,7 @@ void mgos_bthing_mqtt_init_topics() {
 
 bool mgos_bthing_mqtt_init_context();
   const char *err1 = "The [%s] is configured for using the AGGREGATE mode, but it is not enbled.";
-  const char *err2 = "Add 'cdefs: MGOS_BTHING_MQTT_AGGREGATE_MODE: 1' to the mos.yml file for enabling the AGGREGATE mode.";
+  const char *err2 = "Add 'build_vars: MGOS_BTHING_MQTT_MODE: \"single\"' to the mos.yml file for enabling the AGGREGATE mode.";
   s_context.publishing = false;
   if (mg_bthing_scount(mgos_sys_config_get_bthing_mqtt_sub_topic(), MGOS_BTHING_ENV_THINGID) == 0) {
     #ifdef MGOS_BTHING_MQTT_AGGREGATE_MODE

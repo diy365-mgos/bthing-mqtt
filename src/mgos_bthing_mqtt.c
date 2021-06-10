@@ -224,7 +224,7 @@ void mgos_bthing_mqtt_init_topics() {
 }
 
 bool mgos_bthing_mqtt_init_context() {
-  #ifdef MGOS_BTHING_MQTT_AGGREGATE_MODE
+  #ifndef MGOS_BTHING_MQTT_AGGREGATE_MODE
   const char *err1 = "The [%s] is configured for using the AGGREGATE mode, but it is not enbled.";
   const char *err2 = "Add 'build_vars: MGOS_BTHING_MQTT_MODE: \"single\"' to the mos.yml file for enabling the AGGREGATE mode.";
   #endif

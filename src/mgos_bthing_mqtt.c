@@ -50,6 +50,13 @@ static void mg_bthing_mqtt_on_event(struct mg_connection *nc,
   (void) user_data;
 }
 
+void mg_bthing_mqtt_on_discovery(struct mg_connection *nc, const char *topic,
+                                 int topic_len, const char *msg, int msg_len,
+                                 void *ud) {
+  mgos_event_trigger(MGOS_EV_BTHING_UPDATE_STATE, NULL);
+  (void) nc; (void) topic; (void) topic_len; (void) msg; (void) msg_len; (void) ud;
+}
+
 #if MGOS_BTHING_HAVE_ACTUATORS
 
 void mg_bthing_mqtt_on_set_state(struct mg_connection *nc, const char *topic,
@@ -210,6 +217,9 @@ bool mgos_bthing_mqtt_init() {
   #endif
 
   mgos_mqtt_add_global_handler(mg_bthing_mqtt_on_event, NULL);
-
+  
+  // subsribe to the device discovery topic
+  mgos_mqtt_sub(mgos_sys_config_get_bthing_mqtt_disco_topic, mg_bthing_mqtt_on_discovery, NULL);
+  
   return true;
 }

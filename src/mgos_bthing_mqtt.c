@@ -280,7 +280,6 @@ bool mgos_bthing_mqtt_init() {
   if (s_ctx.sub_mode == MG_BTHING_MQTT_MODE_AGGREGATE) {
     // subscribe for receiving set-state messages in AGGREGATE mode
     mgos_mqtt_sub(mgos_sys_config_get_bthing_mqtt_sub_topic(), mg_bthing_mqtt_on_set_state, NULL);
-    return false;
   }
 
   mgos_mqtt_add_global_handler(mg_bthing_mqtt_on_event, NULL);

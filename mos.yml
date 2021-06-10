@@ -34,7 +34,7 @@ libs:
   - origin: https://github.com/diy365-mgos/bvar-json
 
 conds:
-  - when: build_vars.MGOS_BTHING_MQTT_AGGREGATE_MODE == 1
+  - when: cdefs.MGOS_BTHING_MQTT_AGGREGATE_MODE == 1
     apply:
       libs:
         - location: https://github.com/diy365-mgos/bvar-dic

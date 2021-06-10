@@ -217,9 +217,9 @@ bool mgos_bthing_mqtt_init() {
   #endif
 
   mgos_mqtt_add_global_handler(mg_bthing_mqtt_on_event, NULL);
-  
+
   // subsribe to the device discovery topic
-  mgos_mqtt_sub(mgos_sys_config_get_bthing_mqtt_disco_topic, mg_bthing_mqtt_on_discovery, NULL);
+  mgos_mqtt_sub(mgos_sys_config_get_bthing_mqtt_disco_topic(), mg_bthing_mqtt_on_discovery, NULL);
   
   return true;
 }

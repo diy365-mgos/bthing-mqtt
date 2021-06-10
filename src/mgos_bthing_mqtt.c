@@ -59,8 +59,12 @@ void mg_bthing_mqtt_on_set_state(struct mg_connection *nc, const char *topic,
   if (!msg || !item || !item->enabled) return;
 
   mgos_bvar_t state;
-  if (!mgos_bvar_json_try_bscanf(msg, msg_len, &state))  
+  if (!mgos_bvar_json_try_bscanf(msg, msg_len, &state)) {
     state = mgos_bvar_new_nstr(msg, msg_len);
+    LOG(LL_INFO, ("NOT JSON: %s", mgos_bvar_get_str(state)));
+  }
+  else
+    LOG(LL_INFO, ("JSON: %s", mgos_bvar_get_str(state)));
 
   if (s_mqtt_sub_mode == MG_BTHING_MQTT_MODE_SINGLE) {
     mgos_bthing_set_state(item->thing, state);

@@ -145,10 +145,9 @@ static void mg_bthing_mqtt_on_created(int ev, void *ev_data, void *userdata) {
 
 #if MGOS_BTHING_HAVE_SENSORS
 
-static bool mg_bthing_mqtt_pub_state(const char *topic, mgos_bthing_t thing) {
+static bool mg_bthing_mqtt_pub_state(const char *topic, mgos_bvarc_t state ) {
   if (topic) {
     char *payload = NULL;
-    mgos_bvarc_t state = mgos_bthing_get_state(thing);
     enum mgos_bvar_type state_type = mgos_bvar_get_type(state);
     if (state_type == MGOS_BVAR_TYPE_STR) {
       payload = (char *)mgos_bvar_get_str(state);
@@ -161,27 +160,45 @@ static bool mg_bthing_mqtt_pub_state(const char *topic, mgos_bthing_t thing) {
       return (ret > 0);
     }
   }
-  LOG(LL_ERROR, ("Error publishing '%s' state on topic %s.", mgos_bthing_get_id(thing), (topic ? topic : "")));
   return false;
 }
 
 static void mg_bthing_mqtt_on_state_changed(int ev, void *ev_data, void *userdata) {
+  if (s_ctx.publishing) return;
   if (!mgos_mqtt_global_is_connected()) return;
   
   mgos_bthing_t thing = (mgos_bthing_t)ev_data;
 
   struct mg_bthing_mqtt_item *item = mg_bthing_mqtt_get_item(thing);
-  if (!item || !item->enabled) return;  
+  if (item && !item->enabled) return;
 
-  const char* topic = NULL;
-  if (s_ctx.pub_mode == MG_BTHING_MQTT_MODE_SINGLE) {
-    topic = item->pub_topic;
-  } else {
-    // TODO: assing global topic
-    topic = NULL;
+  s_ctx.publishing = true;
+
+  if (s_ctx.pub_mode == MG_BTHING_MQTT_MODE_SINGLE && item) {
+    if (!mg_bthing_mqtt_pub_state(item->pub_topic, mgos_bthing_get_state(item->thing))) {
+      LOG(LL_ERROR, ("Error publishing state of '%s'.", mgos_bthing_get_id(item->thing)));
+    }
+  } else if (s_ctx.pub_mode == MG_BTHING_MQTT_MODE_AGGREGATE) {
+    #ifdef MGOS_BTHING_MQTT_AGGREGATE_MODE
+    mgos_bvar_t state = mgos_bvar_new_dic();
+    mgos_bthing_t thing;
+    mgos_bthing_enum_t things = mgos_bthing_get_all();
+    while (mgos_bthing_get_next(&things, &thing)) {
+      if (!mgos_bvar_add_key(state, mgos_bthing_get_id(thing), mgos_bthing_get_state(thing))) {
+        LOG(LL_ERROR, ("Error adding '%s' to the aggregate state.", mgos_bthing_get_id(thing)));
+      }
+    }
+
+    if (!mg_bthing_mqtt_pub_state(mgos_sys_config_get_bthing_mqtt_pub_topic(), state)) {
+      LOG(LL_ERROR, ("Error publishing aggregated state of '%s'.", mgos_sys_config_get_device_id()));
+    }
+
+    mgos_bvar_remove_keys(state, false);
+    mgos_bvar_free(state);
+    #endif
   }
 
-  mg_bthing_mqtt_pub_state(topic, thing);
+  s_ctx.publishing = false;
 
   (void) userdata;
   (void) ev;

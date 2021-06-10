@@ -173,26 +173,31 @@ static void mg_bthing_mqtt_on_state_changed(int ev, void *ev_data, void *userdat
   mgos_bthing_t thing = (mgos_bthing_t)ev_data;
 
   struct mg_bthing_mqtt_item *item = mg_bthing_mqtt_get_item(thing);
-  if (item && !item->enabled) return;
+  if (!item || (item && !item->enabled)) return;
+
+  LOG(LL_INFO, ("Entering on_state_changed('%s')", mgos_bthing_get_id(thing)));
 
   s_ctx.publishing = true;
 
-  if (s_ctx.pub_mode == MG_BTHING_MQTT_MODE_SINGLE && item) {
+  if (s_ctx.pub_mode == MG_BTHING_MQTT_MODE_SINGLE) {
     if (!mg_bthing_mqtt_pub_state(item->pub_topic, mgos_bthing_get_state(item->thing))) {
       LOG(LL_ERROR, ("Error publishing state of '%s'.", mgos_bthing_get_id(item->thing)));
     }
   
   } else if (s_ctx.pub_mode == MG_BTHING_MQTT_MODE_AGGREGATE) {
     #ifdef MGOS_BTHING_MQTT_AGGREGATE_MODE
+
     mgos_bvar_t state = mgos_bvar_new_dic();
-    mgos_bthing_t thing;
+    mgos_bthing_t tt;
     mgos_bthing_enum_t things = mgos_bthing_get_all();
-    while (mgos_bthing_get_next(&things, &thing)) {
-      item = mg_bthing_mqtt_get_item(thing);
+    while (mgos_bthing_get_next(&things, &tt)) {
+      item = mg_bthing_mqtt_get_item(tt);
       if (item && item->enabled) {
-        if (!mgos_bvar_add_key(state, mgos_bthing_get_id(thing), (mgos_bvar_t)mgos_bthing_get_state(thing))) {
-          LOG(LL_ERROR, ("Error adding '%s' to the aggregate state.", mgos_bthing_get_id(thing)));
+        LOG(LL_INFO, ("Invoking mgos_bthing_get_state('%s')", mgos_bthing_get_id(tt)));
+        if (!mgos_bvar_add_key(state, mgos_bthing_get_id(tt), (mgos_bvar_t)mgos_bthing_get_state(tt))) {
+          LOG(LL_ERROR, ("Error adding '%s' to the aggregate state.", mgos_bthing_get_id(tt)));
         }
+        LOG(LL_INFO, ("Invoked mgos_bthing_get_state('%s')", mgos_bthing_get_id(tt)));
       }
     }
 
@@ -202,10 +207,13 @@ static void mg_bthing_mqtt_on_state_changed(int ev, void *ev_data, void *userdat
 
     //mgos_bvar_remove_keys(state, false);
     //mgos_bvar_free(state);
-    #endif
+
+    #endif //MGOS_BTHING_MQTT_AGGREGATE_MODE
   }
 
   s_ctx.publishing = false;
+
+  LOG(LL_INFO, ("Exiting on_state_changed('%s')", mgos_bthing_get_id(thing)));
 
   (void) userdata;
   (void) ev;

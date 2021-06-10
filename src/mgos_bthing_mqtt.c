@@ -95,7 +95,10 @@ void mg_bthing_mqtt_on_set_state(struct mg_connection *nc, const char *topic,
     mgos_bvarc_t key_val;
     mgos_bvarc_enum_t keys = mgos_bvarc_get_keys(state);
     while (mgos_bvarc_get_next_key(&keys, &key_val, &key_name)) {
-      mgos_bthing_set_state(mgos_bthing_get(key_name), key_val);
+      item = mg_bthing_mqtt_get_item(mgos_bthing_get(key_name));
+      if (item && item->enabled) {
+        mgos_bthing_set_state(item->thing, key_val);
+      }
     }
     #endif
   }
@@ -178,14 +181,18 @@ static void mg_bthing_mqtt_on_state_changed(int ev, void *ev_data, void *userdat
     if (!mg_bthing_mqtt_pub_state(item->pub_topic, mgos_bthing_get_state(item->thing))) {
       LOG(LL_ERROR, ("Error publishing state of '%s'.", mgos_bthing_get_id(item->thing)));
     }
+  
   } else if (s_ctx.pub_mode == MG_BTHING_MQTT_MODE_AGGREGATE) {
     #ifdef MGOS_BTHING_MQTT_AGGREGATE_MODE
     mgos_bvar_t state = mgos_bvar_new_dic();
     mgos_bthing_t thing;
     mgos_bthing_enum_t things = mgos_bthing_get_all();
     while (mgos_bthing_get_next(&things, &thing)) {
-      if (!mgos_bvar_add_key(state, mgos_bthing_get_id(thing), (mgos_bvar_t)mgos_bthing_get_state(thing))) {
-        LOG(LL_ERROR, ("Error adding '%s' to the aggregate state.", mgos_bthing_get_id(thing)));
+      item = mg_bthing_mqtt_get_item(thing);
+      if (item && item->enabled) {
+        if (!mgos_bvar_add_key(state, mgos_bthing_get_id(thing), (mgos_bvar_t)mgos_bthing_get_state(thing))) {
+          LOG(LL_ERROR, ("Error adding '%s' to the aggregate state.", mgos_bthing_get_id(thing)));
+        }
       }
     }
 

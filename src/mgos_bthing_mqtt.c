@@ -16,8 +16,11 @@ enum mg_bthing_mqtt_mode {
   MG_BTHING_MQTT_MODE_AGGREGATE
 };
 
-static enum mg_bthing_mqtt_mode s_pub_mode = MG_BTHING_MQTT_MODE_SINGLE;
-static enum mg_bthing_mqtt_mode s_sub_mode = MG_BTHING_MQTT_MODE_SINGLE;
+static struct mg_bthing_mqtt_ctx {
+enum mg_bthing_mqtt_mode pub_mode;
+enum mg_bthing_mqtt_mode sub_mode;
+bool publishing;
+} s_ctx;
 
 static void mg_bthing_mqtt_on_set_state(struct mg_connection *, const char *, int, const char *, int, void *);
 
@@ -83,10 +86,10 @@ void mg_bthing_mqtt_on_set_state(struct mg_connection *nc, const char *topic,
   mgos_bvar_t state = NULL;
   mgos_bvar_json_try_bscanf(msg, msg_len, &state);
 
-  if (s_sub_mode == MG_BTHING_MQTT_MODE_SINGLE && item) {
+  if (s_ctx.sub_mode == MG_BTHING_MQTT_MODE_SINGLE && item) {
     if (!state) state = mgos_bvar_new_nstr(msg, msg_len);
     mgos_bthing_set_state(item->thing, state);
-  } else if ((s_sub_mode == MG_BTHING_MQTT_MODE_AGGREGATE) && state) {
+  } else if ((s_ctx.sub_mode == MG_BTHING_MQTT_MODE_AGGREGATE) && state) {
     #ifdef MGOS_BTHING_MQTT_AGGREGATE_MODE
     const char *key_name;
     mgos_bvarc_t key_val;
@@ -117,7 +120,7 @@ static void mg_bthing_mqtt_on_created(int ev, void *ev_data, void *userdata) {
   // add new item to the global item list
   mg_bthing_mqtt_add_item(item);
 
-  if (s_pub_mode == MG_BTHING_MQTT_MODE_SINGLE) {
+  if (s_ctx.pub_mode == MG_BTHING_MQTT_MODE_SINGLE) {
     if (mg_bthing_sreplace(mgos_sys_config_get_bthing_mqtt_pub_topic(), MGOS_BTHING_ENV_THINGID, mgos_bthing_get_id(thing), &(item->pub_topic))) {
       LOG(LL_DEBUG, ("bThing '%s' is going to publish state updates here: %s", mgos_bthing_get_id(thing), item->pub_topic));
     } else {
@@ -126,7 +129,7 @@ static void mg_bthing_mqtt_on_created(int ev, void *ev_data, void *userdata) {
   }
 
   #if MGOS_BTHING_HAVE_ACTUATORS
-  if (s_sub_mode == MG_BTHING_MQTT_MODE_SINGLE) {
+  if (s_ctx.sub_mode == MG_BTHING_MQTT_MODE_SINGLE) {
     if (mgos_bthing_is_typeof(thing, MGOS_BTHING_TYPE_ACTUATOR)) {
       if (mg_bthing_sreplace(mgos_sys_config_get_bthing_mqtt_sub_topic(), MGOS_BTHING_ENV_THINGID, mgos_bthing_get_id(thing), &(item->sub_topic))) {
         LOG(LL_DEBUG, ("bThing '%s' is going to listen to set-state messages here: %s", mgos_bthing_get_id(thing), item->sub_topic));
@@ -171,7 +174,7 @@ static void mg_bthing_mqtt_on_state_changed(int ev, void *ev_data, void *userdat
   if (!item || !item->enabled) return;  
 
   const char* topic = NULL;
-  if (s_pub_mode == MG_BTHING_MQTT_MODE_SINGLE) {
+  if (s_ctx.pub_mode == MG_BTHING_MQTT_MODE_SINGLE) {
     topic = item->pub_topic;
   } else {
     // TODO: assing global topic
@@ -220,31 +223,33 @@ void mgos_bthing_mqtt_init_topics() {
   }
 }
 
-bool mgos_bthing_mqtt_init_context();
+bool mgos_bthing_mqtt_init_context() {
   const char *err1 = "The [%s] is configured for using the AGGREGATE mode, but it is not enbled.";
   const char *err2 = "Add 'build_vars: MGOS_BTHING_MQTT_MODE: \"single\"' to the mos.yml file for enabling the AGGREGATE mode.";
   
+  s_ctx.publishing = false;
   if (mg_bthing_scount(mgos_sys_config_get_bthing_mqtt_sub_topic(), MGOS_BTHING_ENV_THINGID) == 0) {
     #ifdef MGOS_BTHING_MQTT_AGGREGATE_MODE
-    s_sub_mode = MG_BTHING_MQTT_MODE_AGGREGATE;
+    s_ctx.sub_mode = MG_BTHING_MQTT_MODE_AGGREGATE;
     #else
     LOG(LL_ERROR, (err1, "bthing.mqtt.sub.topic"));
     LOG(LL_ERROR, (err2));
     return false;
     #endif
   } else {
-    s_sub_mode = MG_BTHING_MQTT_MODE_SINGLE;
+    s_ctx.sub_mode = MG_BTHING_MQTT_MODE_SINGLE;
   }
+
   if (mg_bthing_scount(mgos_sys_config_get_bthing_mqtt_pub_topic(), MGOS_BTHING_ENV_THINGID) == 0) {
     #ifdef MGOS_BTHING_MQTT_AGGREGATE_MODE
-    s_pub_mode = MG_BTHING_MQTT_MODE_AGGREGATE;
+    s_ctx.pub_mode = MG_BTHING_MQTT_MODE_AGGREGATE;
     #else
     LOG(LL_ERROR, (err1, "bthing.mqtt.pub.topic"));
     LOG(LL_ERROR, (err2));
     return false;
     #endif
   } else {
-    s_pub_mode = MG_BTHING_MQTT_MODE_SINGLE;
+    s_ctx.pub_mode = MG_BTHING_MQTT_MODE_SINGLE;
   }
 
   return true;
@@ -271,7 +276,7 @@ bool mgos_bthing_mqtt_init() {
   }
   #endif
 
-  if (s_sub_mode == MG_BTHING_MQTT_MODE_AGGREGATE) {
+  if (s_ctx.sub_mode == MG_BTHING_MQTT_MODE_AGGREGATE) {
     // subscribe for receiving set-state messages in AGGREGATE mode
     mgos_mqtt_sub(mgos_sys_config_get_bthing_mqtt_sub_topic(), mg_bthing_mqtt_on_set_state, NULL);
     return false;

@@ -18,7 +18,16 @@ static enum mg_bthing_mqtt_mode s_mqtt_sub_mode;
 bool mgos_bthing_mqtt_enable(mgos_bthing_t thing, bool enable) {
   struct mg_bthing_mqtt_item *item = mg_bthing_mqtt_get_item(thing);
   if (!item) return false;
-  item->enabled = enable;
+  if (item->enabled != enable) {
+    if (item->sub_topic) {
+      if (enable) {
+        mgos_mqtt_sub(item->sub_topic, mg_bthing_mqtt_on_set_state, item);
+      } else {
+        if (!mgos_mqtt_unsub(item->sub_topic)) return false;
+      }
+    }
+    item->enabled = enable;
+  }
   return true;
 }
 
@@ -107,8 +116,7 @@ static void mg_bthing_mqtt_on_created(int ev, void *ev_data, void *userdata) {
   if (s_mqtt_sub_mode == MG_BTHING_MQTT_MODE_SINGLE) {
     if (mgos_bthing_is_typeof(thing, MGOS_BTHING_TYPE_ACTUATOR)) {
       if (mg_bthing_sreplace(mgos_sys_config_get_bthing_mqtt_sub_topic(), MGOS_BTHING_ENV_THINGID, mgos_bthing_get_id(thing), &(item->sub_topic))) {
-        mgos_mqtt_sub(item->sub_topic, mg_bthing_mqtt_on_set_state, item);
-        LOG(LL_DEBUG, ("bThing '%s' is listening to set-state messages here: %s", mgos_bthing_get_id(thing), item->sub_topic));
+        LOG(LL_DEBUG, ("bThing '%s' is going to listen to set-state messages here: %s", mgos_bthing_get_id(thing), item->sub_topic));
       } else {
         LOG(LL_ERROR, ("Error: '%s' won't receive set-state messages becuase an invalid [bthing.mqtt.sub.topic] cfg.", mgos_bthing_get_id(thing)));
       }

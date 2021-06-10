@@ -2,7 +2,10 @@
 #include "mgos_bthing_mqtt.h"
 #include "mg_bthing_mqtt_sdk.h"
 #include "mgos_bvar_json.h"
+
+#ifdef MGOS_BTHING_MQTT_AGGREGATE_MODE
 #include "mgos_bvar_dic.h"
+#endif
 
 #ifdef MGOS_HAVE_MJS
 #include "mjs.h"
@@ -10,11 +13,10 @@
 
 enum mg_bthing_mqtt_mode {
   MG_BTHING_MQTT_MODE_SINGLE,
-  MG_BTHING_MQTT_MODE_AGGREGATE,
+  MG_BTHING_MQTT_MODE_AGGREGATE
 };
 
-struct mgos_bthing_mqtt_ctx
-{
+struct mgos_bthing_mqtt_ctx {
   enum mg_bthing_mqtt_mode pub_mode;
   enum mg_bthing_mqtt_mode sub_mode;
   bool publishing;
@@ -90,12 +92,14 @@ void mg_bthing_mqtt_on_set_state(struct mg_connection *nc, const char *topic,
     if (!state) state = mgos_bvar_new_nstr(msg, msg_len);
     mgos_bthing_set_state(item->thing, state);
   } else if ((s_context.sub_mode == MG_BTHING_MQTT_MODE_AGGREGATE) && state) {
+    #ifdef MGOS_BTHING_MQTT_AGGREGATE_MODE
     const char *key_name;
     mgos_bvarc_t key_val;
     mgos_bvarc_enum_t keys = mgos_bvarc_get_keys(state);
     while (mgos_bvarc_get_next_key(&keys, &key_val, &key_name)) {
       mgos_bthing_set_state(mgos_bthing_get(key_name), key_val);
     }
+    #endif
   }
 
   mgos_bvar_free(state);
@@ -187,8 +191,7 @@ static void mg_bthing_mqtt_on_state_changed(int ev, void *ev_data, void *userdat
 
 #endif //MGOS_BTHING_HAVE_SENSORS
 
-bool mgos_bthing_mqtt_init() {
-
+void mgos_bthing_mqtt_init_topics() {
   // try to replace $device_id placehoder in will_topic 
   char *topic = mg_bthing_mqtt_build_device_topic(mgos_sys_config_get_mqtt_will_topic());
   if (topic) {
@@ -220,31 +223,63 @@ bool mgos_bthing_mqtt_init() {
     mgos_sys_config_set_bthing_mqtt_sub_topic(topic);
     free(topic);
   }
+}
 
-  // initialize the context
+bool mgos_bthing_mqtt_init_context();
+  const char *err1 = "The [%s] is configured for using the AGGREGATE mode, but it is not enbled.";
+  const char *err2 = "Add 'cdefs: MGOS_BTHING_MQTT_AGGREGATE_MODE: 1' to the mos.yml file for enabling the AGGREGATE mode.";
   s_context.publishing = false;
-  if (mg_bthing_scount(mgos_sys_config_get_bthing_mqtt_sub_topic(), MGOS_BTHING_ENV_THINGID) == 0)
+  if (mg_bthing_scount(mgos_sys_config_get_bthing_mqtt_sub_topic(), MGOS_BTHING_ENV_THINGID) == 0) {
+    #ifdef MGOS_BTHING_MQTT_AGGREGATE_MODE
     s_context.sub_mode = MG_BTHING_MQTT_MODE_AGGREGATE;
-  else
+    #else
+    LOG(LL_ERROR, (err1, "bthing.mqtt.sub.topic"));
+    LOG(LL_ERROR, (err2));
+    return false;
+    #endif
+  } else {
     s_context.sub_mode = MG_BTHING_MQTT_MODE_SINGLE;
-  if (mg_bthing_scount(mgos_sys_config_get_bthing_mqtt_pub_topic(), MGOS_BTHING_ENV_THINGID) == 0)
+  }
+  if (mg_bthing_scount(mgos_sys_config_get_bthing_mqtt_pub_topic(), MGOS_BTHING_ENV_THINGID) == 0) {
+    #ifdef MGOS_BTHING_MQTT_AGGREGATE_MODE
     s_context.pub_mode = MG_BTHING_MQTT_MODE_AGGREGATE;
-  else
+    #else
+    LOG(LL_ERROR, (err1, "bthing.mqtt.pub.topic"));
+    LOG(LL_ERROR, (err2));
+    return false;
+    #endif
+  } else {
     s_context.pub_mode = MG_BTHING_MQTT_MODE_SINGLE;
+  }
+
+  return true;
+}
+
+bool mgos_bthing_mqtt_init() {
+  // initialize defualt topic values
+  mgos_bthing_mqtt_init_topics();
+  // initialize the context
+  if (!mgos_bthing_mqtt_init_context()) {
+    LOG(LL_ERROR, ("Error initializing the context. See above message/s for more details."));
+    return false;
+  }
 
   if (!mgos_event_add_handler(MGOS_EV_BTHING_CREATED, mg_bthing_mqtt_on_created, NULL)) {
     LOG(LL_ERROR, ("Error registering MGOS_EV_BTHING_CREATED handler."));
+    return false;
   }
 
   #if MGOS_BTHING_HAVE_SENSORS
   if (!mgos_event_add_handler(MGOS_EV_BTHING_STATE_CHANGED, mg_bthing_mqtt_on_state_changed, NULL)) {
     LOG(LL_ERROR, ("Error registering MGOS_EV_BTHING_STATE_CHANGED handler."));
+    return false;
   }
   #endif
 
   if (s_context.sub_mode == MG_BTHING_MQTT_MODE_AGGREGATE) {
     // subscribe for receiving set-state messages in AGGREGATE mode
     mgos_mqtt_sub(mgos_sys_config_get_bthing_mqtt_sub_topic(), mg_bthing_mqtt_on_set_state, NULL);
+    return false;
   }
 
   mgos_mqtt_add_global_handler(mg_bthing_mqtt_on_event, NULL);

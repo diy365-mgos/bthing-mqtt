@@ -32,7 +32,12 @@ libs:
   - origin: https://github.com/mongoose-os-libs/mqtt
   - origin: https://github.com/diy365-mgos/bthing
   - origin: https://github.com/diy365-mgos/bvar-json
-  - origin: https://github.com/diy365-mgos/bvar-dic
+
+conds:
+  - when: build_vars.MGOS_BTHING_MQTT_AGGREGATE_MODE == 1
+    apply:
+      libs:
+        - location: https://github.com/diy365-mgos/bvar-dic
 
 tags:
   - c

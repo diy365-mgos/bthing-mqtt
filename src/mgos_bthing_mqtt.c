@@ -93,7 +93,7 @@ void mg_bthing_mqtt_on_set_state(struct mg_connection *nc, const char *topic,
     const char *key_name;
     mgos_bvarc_t key_val;
     mgos_bvarc_enum_t keys = mgos_bvarc_get_keys(state);
-    while (mgos_bvarc_get_next_key(keys, &key_val, &key_name)) {
+    while (mgos_bvarc_get_next_key(&keys, &key_val, &key_name)) {
       mgos_bthing_set_state(mgos_bthing_get(key_name), key_val);
     }
   }

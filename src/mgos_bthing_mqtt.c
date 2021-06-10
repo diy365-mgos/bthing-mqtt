@@ -12,8 +12,14 @@ enum mg_bthing_mqtt_mode {
   MG_BTHING_MQTT_MODE_AGGREGATE,
 };
 
-static enum mg_bthing_mqtt_mode s_mqtt_pub_mode;
-static enum mg_bthing_mqtt_mode s_mqtt_sub_mode;
+struct mgos_bthing_mqtt_ctx
+{
+  enum mg_bthing_mqtt_mode pub_mode;
+  enum mg_bthing_mqtt_mode sub_mode;
+  bool publishing;
+};
+
+static struct mgos_bthing_mqtt_ctx s_context;
 
 static void mg_bthing_mqtt_on_set_state(struct mg_connection *, const char *, int, const char *, int, void *);
 
@@ -73,17 +79,22 @@ void mg_bthing_mqtt_on_discovery(struct mg_connection *nc, const char *topic,
 void mg_bthing_mqtt_on_set_state(struct mg_connection *nc, const char *topic,
                               int topic_len, const char *msg, int msg_len,
                               void *ud) {
-  struct mg_bthing_mqtt_item *item = (struct mg_bthing_mqtt_item *)ud;
-  if (!msg || !item || !item->enabled) return;
+  struct mg_bthing_mqtt_item *item = (struct mg_bthing_mqtt_item *)ud; 
+  if (!msg || (item && !item->enabled)) return;
 
-  mgos_bvar_t state;
-  if (!mgos_bvar_json_try_bscanf(msg, msg_len, &state))
-    state = mgos_bvar_new_nstr(msg, msg_len);
+  mgos_bvar_t state = NULL;
+  mgos_bvar_json_try_bscanf(msg, msg_len, &state);
 
-  if (s_mqtt_sub_mode == MG_BTHING_MQTT_MODE_SINGLE) {
+  if (s_context.sub_mode == MG_BTHING_MQTT_MODE_SINGLE && item) {
+    if (!state) state = mgos_bvar_new_nstr(msg, msg_len);
     mgos_bthing_set_state(item->thing, state);
-  } else {
-    //TODO: manage set-state in aggretate mode
+  } else if ((s_context.sub_mode == MG_BTHING_MQTT_MODE_AGGREGATE) && state) {
+    const char *key_name;
+    mgos_bvarc_t key_val;
+    mgos_bvarc_enum_t keys = mgos_bvarc_get_keys(state);
+    while (mgos_bvarc_get_next_key(keys, &key_val, &key_name)) {
+      mgos_bthing_set_state(mgos_bthing_get(key_name), key_val);
+    }
   }
 
   mgos_bvar_free(state);
@@ -106,7 +117,7 @@ static void mg_bthing_mqtt_on_created(int ev, void *ev_data, void *userdata) {
   // add new item to the global item list
   mg_bthing_mqtt_add_item(item);
 
-  if (s_mqtt_pub_mode == MG_BTHING_MQTT_MODE_SINGLE) {
+  if (s_context.pub_mode == MG_BTHING_MQTT_MODE_SINGLE) {
     if (mg_bthing_sreplace(mgos_sys_config_get_bthing_mqtt_pub_topic(), MGOS_BTHING_ENV_THINGID, mgos_bthing_get_id(thing), &(item->pub_topic))) {
       LOG(LL_DEBUG, ("bThing '%s' is going to publish state updates here: %s", mgos_bthing_get_id(thing), item->pub_topic));
     } else {
@@ -115,7 +126,7 @@ static void mg_bthing_mqtt_on_created(int ev, void *ev_data, void *userdata) {
   }
 
   #if MGOS_BTHING_HAVE_ACTUATORS
-  if (s_mqtt_sub_mode == MG_BTHING_MQTT_MODE_SINGLE) {
+  if (s_context.sub_mode == MG_BTHING_MQTT_MODE_SINGLE) {
     if (mgos_bthing_is_typeof(thing, MGOS_BTHING_TYPE_ACTUATOR)) {
       if (mg_bthing_sreplace(mgos_sys_config_get_bthing_mqtt_sub_topic(), MGOS_BTHING_ENV_THINGID, mgos_bthing_get_id(thing), &(item->sub_topic))) {
         LOG(LL_DEBUG, ("bThing '%s' is going to listen to set-state messages here: %s", mgos_bthing_get_id(thing), item->sub_topic));
@@ -160,7 +171,7 @@ static void mg_bthing_mqtt_on_state_changed(int ev, void *ev_data, void *userdat
   if (!item || !item->enabled) return;  
 
   const char* topic = NULL;
-  if (s_mqtt_pub_mode == MG_BTHING_MQTT_MODE_SINGLE) {
+  if (s_context.pub_mode == MG_BTHING_MQTT_MODE_SINGLE) {
     topic = item->pub_topic;
   } else {
     // TODO: assing global topic
@@ -209,8 +220,16 @@ bool mgos_bthing_mqtt_init() {
     free(topic);
   }
 
-  s_mqtt_pub_mode = MG_BTHING_MQTT_MODE_SINGLE;
-  s_mqtt_sub_mode = MG_BTHING_MQTT_MODE_SINGLE;
+  // initialize the context
+  s_context.publishing = false;
+  if (mg_bthing_scount(mgos_sys_config_get_bthing_mqtt_sub_topic(), MGOS_BTHING_ENV_THINGID) == 0)
+    s_context.sub_mode = MG_BTHING_MQTT_MODE_AGGREGATE;
+  else
+    s_context.sub_mode = MG_BTHING_MQTT_MODE_SINGLE;
+  if (mg_bthing_scount(mgos_sys_config_get_bthing_mqtt_pub_topic(), MGOS_BTHING_ENV_THINGID) == 0)
+    s_context.pub_mode = MG_BTHING_MQTT_MODE_AGGREGATE;
+  else
+    s_context.pub_mode = MG_BTHING_MQTT_MODE_SINGLE;
 
   if (!mgos_event_add_handler(MGOS_EV_BTHING_CREATED, mg_bthing_mqtt_on_created, NULL)) {
     LOG(LL_ERROR, ("Error registering MGOS_EV_BTHING_CREATED handler."));
@@ -222,9 +241,14 @@ bool mgos_bthing_mqtt_init() {
   }
   #endif
 
+  if (s_context.sub_mode == MG_BTHING_MQTT_MODE_AGGREGATE) {
+    // subscribe for receiving set-state messages in AGGREGATE mode
+    mgos_mqtt_sub(mgos_sys_config_get_bthing_mqtt_sub_topic(), mg_bthing_mqtt_on_set_state, NULL);
+  }
+
   mgos_mqtt_add_global_handler(mg_bthing_mqtt_on_event, NULL);
 
-  // subsribe to the device discovery topic
+  // subscribe to the device discovery topic
   mgos_mqtt_sub(mgos_sys_config_get_bthing_mqtt_disco_topic(), mg_bthing_mqtt_on_discovery, NULL);
   
   return true;

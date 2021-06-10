@@ -193,8 +193,8 @@ static void mg_bthing_mqtt_on_state_changed(int ev, void *ev_data, void *userdat
       LOG(LL_ERROR, ("Error publishing aggregated state of '%s'.", mgos_sys_config_get_device_id()));
     }
 
-    mgos_bvar_remove_keys(state, false);
-    mgos_bvar_free(state);
+    //mgos_bvar_remove_keys(state, false);
+    //mgos_bvar_free(state);
     #endif
   }
 

@@ -22,6 +22,7 @@
 #include <stdarg.h>
 #include "mgos_mqtt.h"
 #include "mgos_bthing.h"
+#include "mg_bthing_sdk.h"
 
 #ifdef __cplusplus
 extern "C" {

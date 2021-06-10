@@ -1,5 +1,4 @@
 #include "mgos_mqtt.h"
-#include "mg_bthing_sdk.h"
 #include "mg_bthing_mqtt_sdk.h"
 
 static struct mg_bthing_mqtt_item *s_mqtt_items = NULL;

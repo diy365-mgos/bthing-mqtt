@@ -167,7 +167,7 @@ static bool mg_bthing_mqtt_pub_state(const char *topic, mgos_bvarc_t state ) {
 }
 
 static void mg_bthing_mqtt_on_state_changed(int ev, void *ev_data, void *userdata) {
-  if (s_ctx.publishing) return;
+  //if (s_ctx.publishing) return;
   if (!mgos_mqtt_global_is_connected()) return;
   
   mgos_bthing_t thing = (mgos_bthing_t)ev_data;
@@ -177,7 +177,7 @@ static void mg_bthing_mqtt_on_state_changed(int ev, void *ev_data, void *userdat
 
   LOG(LL_INFO, ("Entering on_state_changed('%s')", mgos_bthing_get_id(thing)));
 
-  s_ctx.publishing = true;
+  //s_ctx.publishing = true;
 
   if (s_ctx.pub_mode == MG_BTHING_MQTT_MODE_SINGLE) {
     if (!mg_bthing_mqtt_pub_state(item->pub_topic, mgos_bthing_get_state(item->thing))) {
@@ -186,6 +186,7 @@ static void mg_bthing_mqtt_on_state_changed(int ev, void *ev_data, void *userdat
   
   } else if (s_ctx.pub_mode == MG_BTHING_MQTT_MODE_AGGREGATE) {
     #ifdef MGOS_BTHING_MQTT_AGGREGATE_MODE
+    mg_bthing_state_changed_off();
 
     mgos_bvar_t state = mgos_bvar_new_dic();
     mgos_bthing_t tt;
@@ -205,13 +206,14 @@ static void mg_bthing_mqtt_on_state_changed(int ev, void *ev_data, void *userdat
       LOG(LL_ERROR, ("Error publishing aggregated state of '%s'.", mgos_sys_config_get_device_id()));
     }
 
-    //mgos_bvar_remove_keys(state, false);
-    //mgos_bvar_free(state);
+    mgos_bvar_remove_keys(state, false);
+    mgos_bvar_free(state);
 
+    mg_bthing_state_changed_on();
     #endif //MGOS_BTHING_MQTT_AGGREGATE_MODE
   }
 
-  s_ctx.publishing = false;
+  //s_ctx.publishing = false;
 
   LOG(LL_INFO, ("Exiting on_state_changed('%s')", mgos_bthing_get_id(thing)));
 

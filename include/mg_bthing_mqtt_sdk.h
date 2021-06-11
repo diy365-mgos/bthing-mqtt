@@ -33,6 +33,7 @@ struct mg_bthing_mqtt_item {
   mgos_bthing_t thing;
   char *pub_topic;
   char *sub_topic;
+  bool shadow_publish;
   struct mg_bthing_mqtt_item *next;
 };
 
@@ -44,6 +45,7 @@ char *mg_bthing_mqtt_build_device_topic(const char *topic);
 
 void mg_bthing_mqtt_add_item(struct mg_bthing_mqtt_item *item);
 struct mg_bthing_mqtt_item *mg_bthing_mqtt_get_item(mgos_bthing_t thing);
+struct mg_bthing_mqtt_item *mg_bthing_mqtt_get_items();
 
 #ifdef __cplusplus
 }

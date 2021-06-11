@@ -46,3 +46,7 @@ struct mg_bthing_mqtt_item *mg_bthing_mqtt_get_item(mgos_bthing_t thing) {
   };
   return NULL;
 }
+
+struct mg_bthing_mqtt_item *mg_bthing_mqtt_get_items() {
+  return s_mqtt_items;
+}

@@ -13,7 +13,11 @@
 
 static struct mg_bthing_mqtt_ctx {
   bool pub_state_shadow;
+  #ifdef MGOS_BTHING_MQTT_STATE_SHADOW
   int pub_shadow_ttp;
+  int pub_shadow_timer_id;
+  mgos_bvar_t shadow_state = NULL;
+  #endif
   bool sub_state_shadow;
 } s_ctx;
 
@@ -84,10 +88,9 @@ void mg_bthing_mqtt_on_set_state(struct mg_connection *nc, const char *topic,
   if (!s_ctx.sub_state_shadow && item) {
     if (!state) state = mgos_bvar_new_nstr(msg, msg_len);
     mgos_bthing_set_state(item->thing, state);
-  } else if (s_ctx.sub_state_shadow && state) {
+  } else if (s_ctx.sub_state_shadow) {
     #ifdef MGOS_BTHING_MQTT_STATE_SHADOW
-    
-    if (mgos_bvar_is_dic(state)) {
+    if (state && mgos_bvar_is_dic(state)) {
       const char *key_name;
       mgos_bvarc_t key_val;
       mgos_bvarc_enum_t keys = mgos_bvarc_get_keys(state);
@@ -166,6 +169,27 @@ static bool mg_bthing_mqtt_pub_state(const char *topic, mgos_bvarc_t state ) {
   return false;
 }
 
+static void mg_bthing_mqtt_pub_shadow_state(bool pub_all) {
+  struct mg_bthing_mqtt_item *item = mg_bthing_mqtt_get_items();
+  while(item->thing) {
+    if (item->enabled && (pub_all || item->shadow_publish)) {
+      if (!mgos_bvar_add_key(s_ctx.shadow_state, mgos_bthing_get_id(item->thing), (mgos_bvar_t)mgos_bthing_get_state(item->thing))) {
+        LOG(LL_ERROR, ("Error adding '%s' to the shadow state.", mgos_bthing_get_id(item->thing)));
+      }
+      item->shadow_publish = false;
+    }
+    items = item->next;
+  }
+
+  if (mgos_bvar_length(s_ctx.shadow_state) > 0) {
+    if (!mg_bthing_mqtt_pub_state(mgos_sys_config_get_bthing_mqtt_pub_topic(), s_ctx.shadow_state)) {
+      LOG(LL_ERROR, ("Error publishing shadowd state of '%s'.", mgos_sys_config_get_device_id()));
+    }
+  }
+
+  mgos_bvar_remove_keys(s_ctx.shadow_state, false);
+}
+
 static void mg_bthing_mqtt_on_state_changed(int ev, void *ev_data, void *userdata) {
   if (!mgos_mqtt_global_is_connected()) return;
   
@@ -174,46 +198,40 @@ static void mg_bthing_mqtt_on_state_changed(int ev, void *ev_data, void *userdat
   struct mg_bthing_mqtt_item *item = mg_bthing_mqtt_get_item(thing);
   if (!item || (item && !item->enabled)) return;
 
-  if (s_ctx.pub_state_shadow == false) {
+  if (!s_ctx.pub_state_shadow) {
     if (!mg_bthing_mqtt_pub_state(item->pub_topic, mgos_bthing_get_state(item->thing))) {
       LOG(LL_ERROR, ("Error publishing state of '%s'.", mgos_bthing_get_id(item->thing)));
     }
   
-  } else if (s_ctx.pub_state_shadow == true) {
+  } else if (s_ctx.pub_state_shadow) {
     #ifdef MGOS_BTHING_MQTT_STATE_SHADOW
-    
-    // set state_changed in silent mode and remove permanently the forced mode (if present)
-    enum mg_bthing_state_changed_mode scm = mg_bthing_get_state_changed_mode();
-    scm &= ~MG_BTHING_STATE_CHANGED_MODE_FORCED; // remove forced mode
-    mg_bthing_set_state_changed_mode(scm | MG_BTHING_STATE_CHANGED_MODE_SILENT);
+    if (s_ctx.pub_shadow_timer_id == MGOS_INVALID_TIMER_ID) {
+      // set state_changed in silent mode and remove permanently the forced mode (if present)
+      enum mg_bthing_state_changed_mode scm = mg_bthing_get_state_changed_mode();
+      scm &= ~MG_BTHING_STATE_CHANGED_MODE_FORCED; // remove forced mode
+      mg_bthing_set_state_changed_mode(scm | MG_BTHING_STATE_CHANGED_MODE_SILENT);
 
-    mgos_bvar_t state = mgos_bvar_new_dic();
-    mgos_bthing_t tt;
-    mgos_bthing_enum_t things = mgos_bthing_get_all();
-    while (mgos_bthing_get_next(&things, &tt)) {
-      item = mg_bthing_mqtt_get_item(tt);
-      if (item && item->enabled) {
-        if (!mgos_bvar_add_key(state, mgos_bthing_get_id(tt), (mgos_bvar_t)mgos_bthing_get_state(tt))) {
-          LOG(LL_ERROR, ("Error adding '%s' to the shadow state.", mgos_bthing_get_id(tt)));
-        }
-      }
+      mg_bthing_mqtt_pub_shadow_state(true);
+
+      // restore the previous state_changed mode (except forced mode)
+      mg_bthing_set_state_changed_mode(scm);
+    } else {
+      // mark the item to be published by the shadow timer
+      item->shadow_publish = true;
     }
-
-    if (!mg_bthing_mqtt_pub_state(mgos_sys_config_get_bthing_mqtt_pub_topic(), state)) {
-      LOG(LL_ERROR, ("Error publishing shadowd state of '%s'.", mgos_sys_config_get_device_id()));
-    }
-
-    mgos_bvar_remove_keys(state, false);
-    mgos_bvar_free(state);
-
-    // restore the previous state_changed mode (except forced mode)
-    mg_bthing_set_state_changed_mode(scm);
     #endif //MGOS_BTHING_MQTT_STATE_SHADOW
   }
 
   (void) userdata;
   (void) ev;
 }
+
+#ifdef MGOS_BTHING_MQTT_STATE_SHADOW
+static void mg_bthing_mqtt_pub_shadow_state(void *arg) {
+  mg_bthing_mqtt_pub_shadow_state(false);
+  (void) arg;
+}
+#endif //MGOS_BTHING_MQTT_STATE_SHADOW
 
 #endif //MGOS_BTHING_HAVE_SENSORS
 
@@ -256,6 +274,9 @@ bool mgos_bthing_mqtt_init_context() {
   const char *err1 = "The [%s] is configured for using the SHADOW mode, but SHADOW mode is disabled.";
   const char *err2 = "To enable SHADOW mode add this into your mos.yml: 'build_vars: MGOS_BTHING_MQTT_STATE_MODE: \"shadow\"'.";
   #endif
+  
+  s_ctx.pub_shadow_timer_id == MGOS_INVALID_TIMER_ID;
+
   if (mg_bthing_scount(mgos_sys_config_get_bthing_mqtt_sub_topic(), MGOS_BTHING_ENV_THINGID) == 0) {
     #ifdef MGOS_BTHING_MQTT_STATE_SHADOW
     s_ctx.sub_state_shadow = true;
@@ -272,6 +293,7 @@ bool mgos_bthing_mqtt_init_context() {
     #ifdef MGOS_BTHING_MQTT_STATE_SHADOW
     s_ctx.pub_shadow_ttp = mgos_sys_config_get_bthing_mqtt_pub_shadow_ttp();
     s_ctx.pub_state_shadow = true;
+    s_ctx.shadow_state = mgos_bvar_new_dic();
     #else
     LOG(LL_ERROR, (err1, "bthing.mqtt.pub.topic"));
     LOG(LL_ERROR, (err2));
@@ -306,6 +328,13 @@ bool mgos_bthing_mqtt_init() {
   #endif
 
   if (s_ctx.sub_state_shadow == true) {
+    // create publisher timer for the shadow state
+    if (s_ctx.pub_shadow_ttp > 0) {
+      s_ctx.pub_shadow_timer_id = mgos_set_timer(s_ctx.pub_shadow_ttp, MGOS_TIMER_REPEAT, mg_bthing_mqtt_pub_shadow_state, NULL);
+      if (s_ctx.pub_shadow_timer_id == MGOS_INVALID_TIMER_ID) {
+        LOG(LL_DEBUG, ("Waring: unable to start the timer for publishing shadow states."));
+      }
+    }
     // subscribe for receiving set-state messages in SHADOW mode
     mgos_mqtt_sub(mgos_sys_config_get_bthing_mqtt_sub_topic(), mg_bthing_mqtt_on_set_state, NULL);
     LOG(LL_DEBUG, ("This device is going to listen to set-shadow-state messages here: %s", mgos_sys_config_get_bthing_mqtt_sub_topic()));

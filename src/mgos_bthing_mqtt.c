@@ -308,7 +308,7 @@ bool mgos_bthing_mqtt_init() {
   if (s_ctx.sub_state_shadow == true) {
     // subscribe for receiving set-state messages in SHADOW mode
     mgos_mqtt_sub(mgos_sys_config_get_bthing_mqtt_sub_topic(), mg_bthing_mqtt_on_set_state, NULL);
-    LOG(LL_DEBUG, ("This device is going to listen to set-shadow-state messages here:", mgos_sys_config_get_bthing_mqtt_sub_topic()));
+    LOG(LL_DEBUG, ("This device is going to listen to set-shadow-state messages here: %s", mgos_sys_config_get_bthing_mqtt_sub_topic()));
     LOG(LL_DEBUG, ("This device is going to publish shadow-state updates here: %s", mgos_sys_config_get_bthing_mqtt_pub_topic()));
   }
 

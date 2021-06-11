@@ -280,7 +280,7 @@ bool mgos_bthing_mqtt_init_context() {
   const char *err2 = "To enable SHADOW mode add this into your mos.yml: 'build_vars: MGOS_BTHING_MQTT_STATE_MODE: \"shadow\"'.";
   #endif
   
-  s_ctx.pub_shadow_timer_id == MGOS_INVALID_TIMER_ID;
+  s_ctx.pub_shadow_timer_id = MGOS_INVALID_TIMER_ID;
 
   if (mg_bthing_scount(mgos_sys_config_get_bthing_mqtt_sub_topic(), MGOS_BTHING_ENV_THINGID) == 0) {
     #ifdef MGOS_BTHING_MQTT_STATE_SHADOW

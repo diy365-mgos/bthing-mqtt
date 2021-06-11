@@ -258,7 +258,7 @@ bool mgos_bthing_mqtt_init_context() {
   #endif
   if (mg_bthing_scount(mgos_sys_config_get_bthing_mqtt_sub_topic(), MGOS_BTHING_ENV_THINGID) == 0) {
     #ifdef MGOS_BTHING_MQTT_STATE_SHADOW
-    s_ctx.sub_shadow_mode = true;
+    s_ctx.sub_state_shadow = true;
     #else
     LOG(LL_ERROR, (err1, "bthing.mqtt.sub.topic"));
     LOG(LL_ERROR, (err2));

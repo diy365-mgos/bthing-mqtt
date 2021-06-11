@@ -232,7 +232,7 @@ static void mg_bthing_mqtt_on_state_changed(int ev, void *ev_data, void *userdat
 }
 
 #ifdef MGOS_BTHING_MQTT_STATE_SHADOW
-static void mg_bthing_mqtt_pub_shadow_state(void *arg) {
+static void mg_bthing_mqtt_pub_shadow_state_cb(void *arg) {
   mg_bthing_mqtt_pub_shadow_state(false);
   (void) arg;
 }
@@ -335,7 +335,7 @@ bool mgos_bthing_mqtt_init() {
   if (s_ctx.sub_state_shadow) {
     // create publisher timer for the shadow state
     if (s_ctx.pub_shadow_ttp > 0) {
-      s_ctx.pub_shadow_timer_id = mgos_set_timer(s_ctx.pub_shadow_ttp, MGOS_TIMER_REPEAT, mg_bthing_mqtt_pub_shadow_state, NULL);
+      s_ctx.pub_shadow_timer_id = mgos_set_timer(s_ctx.pub_shadow_ttp, MGOS_TIMER_REPEAT, mg_bthing_mqtt_pub_shadow_state_cb, NULL);
       if (s_ctx.pub_shadow_timer_id == MGOS_INVALID_TIMER_ID) {
         LOG(LL_DEBUG, ("Waring: unable to start the timer for publishing shadow states."));
       }

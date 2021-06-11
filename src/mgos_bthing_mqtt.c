@@ -19,7 +19,6 @@ enum mg_bthing_mqtt_mode {
 static struct mg_bthing_mqtt_ctx {
 enum mg_bthing_mqtt_mode pub_mode;
 enum mg_bthing_mqtt_mode sub_mode;
-bool publishing;
 } s_ctx;
 
 static void mg_bthing_mqtt_on_set_state(struct mg_connection *, const char *, int, const char *, int, void *);
@@ -167,17 +166,12 @@ static bool mg_bthing_mqtt_pub_state(const char *topic, mgos_bvarc_t state ) {
 }
 
 static void mg_bthing_mqtt_on_state_changed(int ev, void *ev_data, void *userdata) {
-  //if (s_ctx.publishing) return;
   if (!mgos_mqtt_global_is_connected()) return;
   
   mgos_bthing_t thing = (mgos_bthing_t)ev_data;
 
   struct mg_bthing_mqtt_item *item = mg_bthing_mqtt_get_item(thing);
   if (!item || (item && !item->enabled)) return;
-
-  LOG(LL_INFO, ("Entering on_state_changed('%s')", mgos_bthing_get_id(thing)));
-
-  //s_ctx.publishing = true;
 
   if (s_ctx.pub_mode == MG_BTHING_MQTT_MODE_SINGLE) {
     if (!mg_bthing_mqtt_pub_state(item->pub_topic, mgos_bthing_get_state(item->thing))) {
@@ -186,7 +180,9 @@ static void mg_bthing_mqtt_on_state_changed(int ev, void *ev_data, void *userdat
   
   } else if (s_ctx.pub_mode == MG_BTHING_MQTT_MODE_AGGREGATE) {
     #ifdef MGOS_BTHING_MQTT_AGGREGATE_MODE
-    mg_bthing_state_changed_off();
+    // set state_changed in silent mode
+    enum mg_bthing_state_changed_mode scm = mg_bthing_get_state_changed_mode();
+    mg_bthing_set_state_changed_mode(scm | MG_BTHING_STATE_CHANGED_MODE_SILENT);
 
     mgos_bvar_t state = mgos_bvar_new_dic();
     mgos_bthing_t tt;
@@ -194,11 +190,9 @@ static void mg_bthing_mqtt_on_state_changed(int ev, void *ev_data, void *userdat
     while (mgos_bthing_get_next(&things, &tt)) {
       item = mg_bthing_mqtt_get_item(tt);
       if (item && item->enabled) {
-        LOG(LL_INFO, ("Invoking mgos_bthing_get_state('%s')", mgos_bthing_get_id(tt)));
         if (!mgos_bvar_add_key(state, mgos_bthing_get_id(tt), (mgos_bvar_t)mgos_bthing_get_state(tt))) {
           LOG(LL_ERROR, ("Error adding '%s' to the aggregate state.", mgos_bthing_get_id(tt)));
         }
-        LOG(LL_INFO, ("Invoked mgos_bthing_get_state('%s')", mgos_bthing_get_id(tt)));
       }
     }
 
@@ -209,13 +203,10 @@ static void mg_bthing_mqtt_on_state_changed(int ev, void *ev_data, void *userdat
     mgos_bvar_remove_keys(state, false);
     mgos_bvar_free(state);
 
-    mg_bthing_state_changed_on();
+    // restore the previous state_changed mode
+    mg_bthing_set_state_changed_mode(scm);
     #endif //MGOS_BTHING_MQTT_AGGREGATE_MODE
   }
-
-  //s_ctx.publishing = false;
-
-  LOG(LL_INFO, ("Exiting on_state_changed('%s')", mgos_bthing_get_id(thing)));
 
   (void) userdata;
   (void) ev;
@@ -262,7 +253,6 @@ bool mgos_bthing_mqtt_init_context() {
   const char *err1 = "The [%s] is configured for using the AGGREGATE mode, but it is not enbled.";
   const char *err2 = "Add 'build_vars: MGOS_BTHING_MQTT_MODE: \"single\"' to the mos.yml file for enabling the AGGREGATE mode.";
   #endif
-  s_ctx.publishing = false;
   if (mg_bthing_scount(mgos_sys_config_get_bthing_mqtt_sub_topic(), MGOS_BTHING_ENV_THINGID) == 0) {
     #ifdef MGOS_BTHING_MQTT_AGGREGATE_MODE
     s_ctx.sub_mode = MG_BTHING_MQTT_MODE_AGGREGATE;

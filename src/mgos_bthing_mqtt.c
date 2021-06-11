@@ -13,12 +13,12 @@
 
 static struct mg_bthing_mqtt_ctx {
   bool pub_state_shadow;
+  bool sub_state_shadow;
   #ifdef MGOS_BTHING_MQTT_STATE_SHADOW
   int pub_shadow_ttp;
   int pub_shadow_timer_id;
   mgos_bvar_t shadow_state = NULL;
   #endif
-  bool sub_state_shadow;
 } s_ctx;
 
 static void mg_bthing_mqtt_on_set_state(struct mg_connection *, const char *, int, const char *, int, void *);
@@ -126,7 +126,7 @@ static void mg_bthing_mqtt_on_created(int ev, void *ev_data, void *userdata) {
   // add new item to the global item list
   mg_bthing_mqtt_add_item(item);
 
-  if (s_ctx.pub_state_shadow == false) {
+  if (!s_ctx.pub_state_shadow) {
     if (mg_bthing_sreplace(mgos_sys_config_get_bthing_mqtt_pub_topic(), MGOS_BTHING_ENV_THINGID, mgos_bthing_get_id(thing), &(item->pub_topic))) {
       LOG(LL_DEBUG, ("bThing '%s' is going to publish state updates here: %s", mgos_bthing_get_id(thing), item->pub_topic));
     } else {
@@ -135,7 +135,7 @@ static void mg_bthing_mqtt_on_created(int ev, void *ev_data, void *userdata) {
   }
 
   #if MGOS_BTHING_HAVE_ACTUATORS
-  if (s_ctx.sub_state_shadow == false) {
+  if (!s_ctx.sub_state_shadow) {
     if (mgos_bthing_is_typeof(thing, MGOS_BTHING_TYPE_ACTUATOR)) {
       if (mg_bthing_sreplace(mgos_sys_config_get_bthing_mqtt_sub_topic(), MGOS_BTHING_ENV_THINGID, mgos_bthing_get_id(thing), &(item->sub_topic))) {
         LOG(LL_DEBUG, ("bThing '%s' is going to listen to set-state messages here: %s", mgos_bthing_get_id(thing), item->sub_topic));
@@ -169,6 +169,8 @@ static bool mg_bthing_mqtt_pub_state(const char *topic, mgos_bvarc_t state ) {
   return false;
 }
 
+#ifdef MGOS_BTHING_MQTT_STATE_SHADOW
+
 static void mg_bthing_mqtt_pub_shadow_state(bool pub_all) {
   struct mg_bthing_mqtt_item *item = mg_bthing_mqtt_get_items();
   while(item->thing) {
@@ -178,7 +180,7 @@ static void mg_bthing_mqtt_pub_shadow_state(bool pub_all) {
       }
       item->shadow_publish = false;
     }
-    items = item->next;
+    item = item->next;
   }
 
   if (mgos_bvar_length(s_ctx.shadow_state) > 0) {
@@ -189,6 +191,9 @@ static void mg_bthing_mqtt_pub_shadow_state(bool pub_all) {
 
   mgos_bvar_remove_keys(s_ctx.shadow_state, false);
 }
+
+#endif //MGOS_BTHING_MQTT_STATE_SHADOW
+  
 
 static void mg_bthing_mqtt_on_state_changed(int ev, void *ev_data, void *userdata) {
   if (!mgos_mqtt_global_is_connected()) return;
@@ -327,7 +332,7 @@ bool mgos_bthing_mqtt_init() {
   }
   #endif
 
-  if (s_ctx.sub_state_shadow == true) {
+  if (s_ctx.sub_state_shadow) {
     // create publisher timer for the shadow state
     if (s_ctx.pub_shadow_ttp > 0) {
       s_ctx.pub_shadow_timer_id = mgos_set_timer(s_ctx.pub_shadow_ttp, MGOS_TIMER_REPEAT, mg_bthing_mqtt_pub_shadow_state, NULL);

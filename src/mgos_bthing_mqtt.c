@@ -17,7 +17,7 @@ static struct mg_bthing_mqtt_ctx {
   #ifdef MGOS_BTHING_MQTT_STATE_SHADOW
   int pub_shadow_ttp;
   int pub_shadow_timer_id;
-  mgos_bvar_t shadow_state = NULL;
+  mgos_bvar_t shadow_state;
   #endif
 } s_ctx;
 

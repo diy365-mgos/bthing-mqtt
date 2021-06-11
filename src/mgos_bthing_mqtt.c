@@ -87,7 +87,7 @@ void mg_bthing_mqtt_on_set_state(struct mg_connection *nc, const char *topic,
   } else if (s_ctx.sub_state_shadow && state) {
     #ifdef MGOS_BTHING_MQTT_STATE_SHADOW
     
-    if (mgos_bvar_is_dic(state))
+    if (mgos_bvar_is_dic(state)) {
       const char *key_name;
       mgos_bvarc_t key_val;
       mgos_bvarc_enum_t keys = mgos_bvarc_get_keys(state);

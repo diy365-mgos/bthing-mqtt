@@ -173,7 +173,7 @@ static bool mg_bthing_mqtt_pub_state(const char *topic, mgos_bvarc_t state ) {
 
 static void mg_bthing_mqtt_pub_shadow_state(bool pub_all) {
   struct mg_bthing_mqtt_item *item = mg_bthing_mqtt_get_items();
-  while(item->thing) {
+  while(item) {
     if (item->enabled && (pub_all || item->shadow_publish)) {
       if (!mgos_bvar_add_key(s_ctx.shadow_state, mgos_bthing_get_id(item->thing), (mgos_bvar_t)mgos_bthing_get_state(item->thing))) {
         LOG(LL_ERROR, ("Error adding '%s' to the shadow state.", mgos_bthing_get_id(item->thing)));
@@ -208,7 +208,7 @@ static void mg_bthing_mqtt_on_state_changed(int ev, void *ev_data, void *userdat
       LOG(LL_ERROR, ("Error publishing state of '%s'.", mgos_bthing_get_id(item->thing)));
     }
   
-  } else if (s_ctx.pub_state_shadow) {
+  } else {
     #ifdef MGOS_BTHING_MQTT_STATE_SHADOW
     if (s_ctx.pub_shadow_timer_id == MGOS_INVALID_TIMER_ID) {
       // set state_changed in silent mode and remove permanently the forced mode (if present)

@@ -4,7 +4,7 @@ description: Mongoose-OS library that allows you to easily enable MQTT over bThi
 version: 1.0
 
 build_vars:
-  MGOS_BTHING_MQTT_MODE: "single"
+  MGOS_BTHING_MQTT_STATE_MODE: "default"
 
 sources:
   - src
@@ -23,7 +23,6 @@ config_schema:
   - ["bthing.mqtt.disco_topic", s, "$bthings/${device_id}/discovery", {title: "The MQTT discovery topic"}]
   - ["bthing.mqtt.pub", "o", {title: "MQTT publish settings"}]
   - ["bthing.mqtt.pub.topic", s, "$bthings/${device_id}/${bthing_id}/state/updated", {title: "The the topic for publishing state updates"}]
-  - ["bthing.mqtt.pub.allow_partial", b, false, {title: "If true, only changed states are published."}]
   - ["bthing.mqtt.sub", "o", {title: "MQTT subcribe settings"}]
   - ["bthing.mqtt.sub.topic", s, "$bthings/${device_id}/${bthing_id}/state/update", {title: "The the topic for receiving set-state messages"}]
 
@@ -37,10 +36,12 @@ libs:
   - origin: https://github.com/diy365-mgos/bvar-json
 
 conds:
-  - when: build_vars.MGOS_BTHING_MQTT_MODE == "aggregate"
+  - when: build_vars.MGOS_BTHING_MQTT_STATE_MODE == "shadow"
     apply:
       cdefs:
-        MGOS_BTHING_MQTT_AGGREGATE_MODE: 1
+        MGOS_BTHING_MQTT_STATE_SHADOW: 1
+      config_schema:
+          - ["bthing.mqtt.pub.shadow_ttp", i, 0, {title: "Shadow time-to-publish (in milliseconds), or 0 to publish the shadow instantly."}]  
       libs:
         - location: https://github.com/diy365-mgos/bvar-dic
 

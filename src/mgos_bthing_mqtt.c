@@ -3,7 +3,7 @@
 #include "mg_bthing_mqtt_sdk.h"
 #include "mgos_bvar_json.h"
 
-#ifdef MGOS_BTHING_MQTT_AGGREGATE_MODE
+#ifdef MGOS_BTHING_MQTT_STATE_SHADOW
 #include "mgos_bvar_dic.h"
 #endif
 
@@ -11,14 +11,10 @@
 #include "mjs.h"
 #endif
 
-enum mg_bthing_mqtt_mode {
-  MG_BTHING_MQTT_MODE_SINGLE,
-  MG_BTHING_MQTT_MODE_AGGREGATE
-};
-
 static struct mg_bthing_mqtt_ctx {
-enum mg_bthing_mqtt_mode pub_mode;
-enum mg_bthing_mqtt_mode sub_mode;
+  bool pub_state_shadow;
+  int pub_shadow_ttp;
+  bool sub_state_shadow;
 } s_ctx;
 
 static void mg_bthing_mqtt_on_set_state(struct mg_connection *, const char *, int, const char *, int, void *);
@@ -85,19 +81,24 @@ void mg_bthing_mqtt_on_set_state(struct mg_connection *nc, const char *topic,
   mgos_bvar_t state = NULL;
   mgos_bvar_json_try_bscanf(msg, msg_len, &state);
 
-  if (s_ctx.sub_mode == MG_BTHING_MQTT_MODE_SINGLE && item) {
+  if (!s_ctx.sub_state_shadow && item) {
     if (!state) state = mgos_bvar_new_nstr(msg, msg_len);
     mgos_bthing_set_state(item->thing, state);
-  } else if ((s_ctx.sub_mode == MG_BTHING_MQTT_MODE_AGGREGATE) && state) {
-    #ifdef MGOS_BTHING_MQTT_AGGREGATE_MODE
-    const char *key_name;
-    mgos_bvarc_t key_val;
-    mgos_bvarc_enum_t keys = mgos_bvarc_get_keys(state);
-    while (mgos_bvarc_get_next_key(&keys, &key_val, &key_name)) {
-      item = mg_bthing_mqtt_get_item(mgos_bthing_get(key_name));
-      if (item && item->enabled) {
-        mgos_bthing_set_state(item->thing, key_val);
+  } else if (s_ctx.sub_state_shadow && state) {
+    #ifdef MGOS_BTHING_MQTT_STATE_SHADOW
+    
+    if (mgos_bvar_is_dic(state))
+      const char *key_name;
+      mgos_bvarc_t key_val;
+      mgos_bvarc_enum_t keys = mgos_bvarc_get_keys(state);
+      while (mgos_bvarc_get_next_key(&keys, &key_val, &key_name)) {
+        item = mg_bthing_mqtt_get_item(mgos_bthing_get(key_name));
+        if (item && item->enabled) {
+          mgos_bthing_set_state(item->thing, key_val);
+        }
       }
+    } else {
+      LOG(LL_ERROR, ("Invalid update-state MQTT message payload. A json object is expected when in SHADOW mode."));
     }
     #endif
   }
@@ -122,7 +123,7 @@ static void mg_bthing_mqtt_on_created(int ev, void *ev_data, void *userdata) {
   // add new item to the global item list
   mg_bthing_mqtt_add_item(item);
 
-  if (s_ctx.pub_mode == MG_BTHING_MQTT_MODE_SINGLE) {
+  if (s_ctx.pub_state_shadow == false) {
     if (mg_bthing_sreplace(mgos_sys_config_get_bthing_mqtt_pub_topic(), MGOS_BTHING_ENV_THINGID, mgos_bthing_get_id(thing), &(item->pub_topic))) {
       LOG(LL_DEBUG, ("bThing '%s' is going to publish state updates here: %s", mgos_bthing_get_id(thing), item->pub_topic));
     } else {
@@ -131,7 +132,7 @@ static void mg_bthing_mqtt_on_created(int ev, void *ev_data, void *userdata) {
   }
 
   #if MGOS_BTHING_HAVE_ACTUATORS
-  if (s_ctx.sub_mode == MG_BTHING_MQTT_MODE_SINGLE) {
+  if (s_ctx.sub_state_shadow == false) {
     if (mgos_bthing_is_typeof(thing, MGOS_BTHING_TYPE_ACTUATOR)) {
       if (mg_bthing_sreplace(mgos_sys_config_get_bthing_mqtt_sub_topic(), MGOS_BTHING_ENV_THINGID, mgos_bthing_get_id(thing), &(item->sub_topic))) {
         LOG(LL_DEBUG, ("bThing '%s' is going to listen to set-state messages here: %s", mgos_bthing_get_id(thing), item->sub_topic));
@@ -173,13 +174,13 @@ static void mg_bthing_mqtt_on_state_changed(int ev, void *ev_data, void *userdat
   struct mg_bthing_mqtt_item *item = mg_bthing_mqtt_get_item(thing);
   if (!item || (item && !item->enabled)) return;
 
-  if (s_ctx.pub_mode == MG_BTHING_MQTT_MODE_SINGLE) {
+  if (s_ctx.pub_state_shadow == false) {
     if (!mg_bthing_mqtt_pub_state(item->pub_topic, mgos_bthing_get_state(item->thing))) {
       LOG(LL_ERROR, ("Error publishing state of '%s'.", mgos_bthing_get_id(item->thing)));
     }
   
-  } else if (s_ctx.pub_mode == MG_BTHING_MQTT_MODE_AGGREGATE) {
-    #ifdef MGOS_BTHING_MQTT_AGGREGATE_MODE
+  } else if (s_ctx.pub_state_shadow == true) {
+    #ifdef MGOS_BTHING_MQTT_STATE_SHADOW
     
     // set state_changed in silent mode and remove permanently the forced mode (if present)
     enum mg_bthing_state_changed_mode scm = mg_bthing_get_state_changed_mode();
@@ -193,13 +194,13 @@ static void mg_bthing_mqtt_on_state_changed(int ev, void *ev_data, void *userdat
       item = mg_bthing_mqtt_get_item(tt);
       if (item && item->enabled) {
         if (!mgos_bvar_add_key(state, mgos_bthing_get_id(tt), (mgos_bvar_t)mgos_bthing_get_state(tt))) {
-          LOG(LL_ERROR, ("Error adding '%s' to the aggregate state.", mgos_bthing_get_id(tt)));
+          LOG(LL_ERROR, ("Error adding '%s' to the shadow state.", mgos_bthing_get_id(tt)));
         }
       }
     }
 
     if (!mg_bthing_mqtt_pub_state(mgos_sys_config_get_bthing_mqtt_pub_topic(), state)) {
-      LOG(LL_ERROR, ("Error publishing aggregated state of '%s'.", mgos_sys_config_get_device_id()));
+      LOG(LL_ERROR, ("Error publishing shadowd state of '%s'.", mgos_sys_config_get_device_id()));
     }
 
     mgos_bvar_remove_keys(state, false);
@@ -207,7 +208,7 @@ static void mg_bthing_mqtt_on_state_changed(int ev, void *ev_data, void *userdat
 
     // restore the previous state_changed mode (except forced mode)
     mg_bthing_set_state_changed_mode(scm);
-    #endif //MGOS_BTHING_MQTT_AGGREGATE_MODE
+    #endif //MGOS_BTHING_MQTT_STATE_SHADOW
   }
 
   (void) userdata;
@@ -251,32 +252,33 @@ void mgos_bthing_mqtt_init_topics() {
 }
 
 bool mgos_bthing_mqtt_init_context() {
-  #ifndef MGOS_BTHING_MQTT_AGGREGATE_MODE
-  const char *err1 = "The [%s] is configured for using the AGGREGATE mode, but it is not enbled.";
-  const char *err2 = "Add 'build_vars: MGOS_BTHING_MQTT_MODE: \"single\"' to the mos.yml file for enabling the AGGREGATE mode.";
+  #ifndef MGOS_BTHING_MQTT_STATE_SHADOW
+  const char *err1 = "The [%s] is configured for using the SHADOW mode, but SHADOW mode is disabled.";
+  const char *err2 = "To enable SHADOW mode add this into your mos.yml: 'build_vars: MGOS_BTHING_MQTT_STATE_MODE: \"shadow\"'.";
   #endif
   if (mg_bthing_scount(mgos_sys_config_get_bthing_mqtt_sub_topic(), MGOS_BTHING_ENV_THINGID) == 0) {
-    #ifdef MGOS_BTHING_MQTT_AGGREGATE_MODE
-    s_ctx.sub_mode = MG_BTHING_MQTT_MODE_AGGREGATE;
+    #ifdef MGOS_BTHING_MQTT_STATE_SHADOW
+    s_ctx.sub_shadow_mode = true;
     #else
     LOG(LL_ERROR, (err1, "bthing.mqtt.sub.topic"));
     LOG(LL_ERROR, (err2));
     return false;
     #endif
   } else {
-    s_ctx.sub_mode = MG_BTHING_MQTT_MODE_SINGLE;
+    s_ctx.sub_state_shadow = false;
   }
 
   if (mg_bthing_scount(mgos_sys_config_get_bthing_mqtt_pub_topic(), MGOS_BTHING_ENV_THINGID) == 0) {
-    #ifdef MGOS_BTHING_MQTT_AGGREGATE_MODE
-    s_ctx.pub_mode = MG_BTHING_MQTT_MODE_AGGREGATE;
+    #ifdef MGOS_BTHING_MQTT_STATE_SHADOW
+    s_ctx.pub_shadow_ttp = mgos_sys_config_get_bthing_mqtt_pub_shadow_ttp();
+    s_ctx.pub_state_shadow = true;
     #else
     LOG(LL_ERROR, (err1, "bthing.mqtt.pub.topic"));
     LOG(LL_ERROR, (err2));
     return false;
     #endif
   } else {
-    s_ctx.pub_mode = MG_BTHING_MQTT_MODE_SINGLE;
+    s_ctx.pub_state_shadow = false;
   }
 
   return true;
@@ -303,9 +305,11 @@ bool mgos_bthing_mqtt_init() {
   }
   #endif
 
-  if (s_ctx.sub_mode == MG_BTHING_MQTT_MODE_AGGREGATE) {
-    // subscribe for receiving set-state messages in AGGREGATE mode
+  if (s_ctx.sub_state_shadow == true) {
+    // subscribe for receiving set-state messages in SHADOW mode
     mgos_mqtt_sub(mgos_sys_config_get_bthing_mqtt_sub_topic(), mg_bthing_mqtt_on_set_state, NULL);
+    LOG(LL_DEBUG, ("This device is going to listen to set-shadow-state messages here:", mgos_sys_config_get_bthing_mqtt_sub_topic()));
+    LOG(LL_DEBUG, ("This device is going to publish shadow-state updates here: %s", mgos_sys_config_get_bthing_mqtt_pub_topic()));
   }
 
   mgos_mqtt_add_global_handler(mg_bthing_mqtt_on_event, NULL);

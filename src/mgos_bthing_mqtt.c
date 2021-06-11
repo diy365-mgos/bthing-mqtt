@@ -180,8 +180,10 @@ static void mg_bthing_mqtt_on_state_changed(int ev, void *ev_data, void *userdat
   
   } else if (s_ctx.pub_mode == MG_BTHING_MQTT_MODE_AGGREGATE) {
     #ifdef MGOS_BTHING_MQTT_AGGREGATE_MODE
-    // set state_changed in silent mode
+    
+    // set state_changed in silent mode and remove permanently the forced mode (if present)
     enum mg_bthing_state_changed_mode scm = mg_bthing_get_state_changed_mode();
+    scm &= ~MG_BTHING_STATE_CHANGED_MODE_FORCED; // remove forced mode
     mg_bthing_set_state_changed_mode(scm | MG_BTHING_STATE_CHANGED_MODE_SILENT);
 
     mgos_bvar_t state = mgos_bvar_new_dic();
@@ -203,7 +205,7 @@ static void mg_bthing_mqtt_on_state_changed(int ev, void *ev_data, void *userdat
     mgos_bvar_remove_keys(state, false);
     mgos_bvar_free(state);
 
-    // restore the previous state_changed mode
+    // restore the previous state_changed mode (except forced mode)
     mg_bthing_set_state_changed_mode(scm);
     #endif //MGOS_BTHING_MQTT_AGGREGATE_MODE
   }

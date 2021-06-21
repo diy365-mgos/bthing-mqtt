@@ -78,7 +78,7 @@ void mg_bthing_mqtt_on_set_state(struct mg_connection *nc, const char *topic,
 
   #else
   struct mg_bthing_mqtt_item *item = (struct mg_bthing_mqtt_item *)ud; 
-  if (item && item->enabled)) {
+  if (item && item->enabled) {
     mgos_bvar_t state = NULL;
     if (!mgos_bvar_json_try_bscanf(msg, msg_len, &state)) {
       state = mgos_bvar_new_nstr(msg, msg_len);

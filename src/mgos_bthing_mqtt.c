@@ -74,7 +74,7 @@ void mg_bthing_mqtt_on_set_state(struct mg_connection *nc, const char *topic,
   if (!msg || msg_len == 0) return;
 
   #ifdef MGOS_BTHING_HAVE_SHADOW
-  mgos_bthing_shadow_json_set(msg, msg_len));
+  mgos_bthing_shadow_json_set(msg, msg_len);
 
   #else
   struct mg_bthing_mqtt_item *item = (struct mg_bthing_mqtt_item *)ud; 
@@ -152,7 +152,7 @@ static void mg_bthing_mqtt_on_state_changed(int ev, void *ev_data, void *userdat
   
   #ifdef MGOS_BTHING_HAVE_SHADOW
   struct mgos_bthing_shadow_state *state = (struct mgos_bthing_shadow_state *)ev_data;
-  if (!mg_bthing_mqtt_pub_state(item->pub_topic, state->full_shadow)) {
+  if (!mg_bthing_mqtt_pub_state(mgos_sys_config_get_bthing_mqtt_pub_topic(), state->full_shadow)) {
     LOG(LL_ERROR, ("Error publishing shadow of '%s'.", mgos_bthing_get_id(item->thing)));
   }
 

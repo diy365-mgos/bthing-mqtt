@@ -1,7 +1,9 @@
 #include "mgos_mqtt.h"
 #include "mg_bthing_mqtt_sdk.h"
 
+#ifndef MGOS_BTHING_HAVE_SHADOW
 static struct mg_bthing_mqtt_item *s_mqtt_items = NULL;
+#endif
 
 int mg_bthing_mqtt_pub(const char *topic, const char *msg, bool retain) {
   return mgos_mqtt_pub(topic, msg, (msg == NULL ? 0 : strlen(msg)),

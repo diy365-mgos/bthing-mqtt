@@ -28,6 +28,8 @@ char *mg_bthing_mqtt_build_device_topic(const char *topic) {
   return NULL;
 }
 
+#ifndef MGOS_BTHING_HAVE_SHADOW
+
 void mg_bthing_mqtt_add_item(struct mg_bthing_mqtt_item *item) {
   if (item) {
     if (!s_mqtt_items) {
@@ -50,3 +52,5 @@ struct mg_bthing_mqtt_item *mg_bthing_mqtt_get_item(mgos_bthing_t thing) {
 struct mg_bthing_mqtt_item *mg_bthing_mqtt_get_items() {
   return s_mqtt_items;
 }
+
+#endif //MGOS_BTHING_HAVE_SHADOW

@@ -9,7 +9,7 @@ bool mgos_bthing_mqtt_enable(mgos_bthing_t thing, bool enable);
 Enables or disables MQTT messages for a bThing. Returns `true` on success, or `false` otherwise.
 
 |Parameter||
-|--|--|
+|--|--| 
 |thing|A bThing.|
 |enable|Enable or disable MQTT.|
 ## To Do

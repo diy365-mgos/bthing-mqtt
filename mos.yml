@@ -3,9 +3,6 @@ type: lib
 description: Mongoose-OS library that allows you to easily enable MQTT over bThings.
 version: 1.0
 
-build_vars:
-  MGOS_BTHING_MQTT_STATE_MODE: "default"
-
 sources:
   - src
 
@@ -34,16 +31,6 @@ libs:
   - origin: https://github.com/mongoose-os-libs/mqtt
   - origin: https://github.com/diy365-mgos/bthing
   - origin: https://github.com/diy365-mgos/bvar-json
-
-conds:
-  - when: build_vars.MGOS_BTHING_MQTT_STATE_MODE == "shadow"
-    apply:
-      cdefs:
-        MGOS_BTHING_MQTT_STATE_SHADOW: 1
-      config_schema:
-          - ["bthing.mqtt.pub.shadow_ttp", i, 0, {title: "Shadow time-to-publish (in milliseconds), or 0 to publish the shadow instantly."}]  
-      libs:
-        - location: https://github.com/diy365-mgos/bvar-dic
 
 tags:
   - c

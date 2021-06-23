@@ -91,7 +91,7 @@ void mg_bthing_mqtt_on_set_state(struct mg_connection *nc, const char *topic,
   #endif //MGOS_BTHING_HAVE_SHADOW
 
   size_t heap_leak = (heap1 - mgos_get_free_heap_size());
-  if (heap_leak != 0) LOG(LL_ERROR, "Memory leak detected: %d bytes leaked!", heap_leak);
+  if (heap_leak != 0) LOG(LL_ERROR, ("Memory leak detected: %d bytes leaked!", heap_leak));
 
   (void) nc;
   (void) topic;
@@ -168,7 +168,7 @@ static void mg_bthing_mqtt_on_state_changed(int ev, void *ev_data, void *userdat
   #endif //MGOS_BTHING_HAVE_SHADOW
 
   size_t heap_leak = (heap1 - mgos_get_free_heap_size());
-  if (heap_leak != 0) LOG(LL_ERROR, "Memory leak detected: %d bytes leaked!", heap_leak);
+  if (heap_leak != 0) LOG(LL_ERROR, ("Memory leak detected: %d bytes leaked!", heap_leak));
 
 
   (void) userdata;

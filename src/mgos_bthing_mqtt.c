@@ -69,11 +69,9 @@ void mg_bthing_mqtt_on_discovery(struct mg_connection *nc, const char *topic,
 
 #if MGOS_BTHING_HAVE_ACTUATORS
 void mg_bthing_mqtt_on_set_state(struct mg_connection *nc, const char *topic,
-                              int topic_len, const char *msg, int msg_len,
-                              void *ud) {
+                                 int topic_len, const char *msg, int msg_len,
+                                 void *ud) {
   if (!msg || msg_len == 0) return;
-
-  size_t heap1 = mgos_get_free_heap_size();
 
   #ifdef MGOS_BTHING_HAVE_SHADOW
   mgos_bthing_shadow_json_set(msg, msg_len);
@@ -89,10 +87,6 @@ void mg_bthing_mqtt_on_set_state(struct mg_connection *nc, const char *topic,
     mgos_bvar_free(state);
   }
   #endif //MGOS_BTHING_HAVE_SHADOW
-
-  size_t heap2 = mgos_get_free_heap_size();
-  size_t heap_leak = (heap1 - heap2);
-  if (heap_leak != 0) LOG(LL_ERROR, ("Memory: %d bytes leaked! (%d - %d)", heap_leak, heap1, heap2));
 
   (void) nc;
   (void) topic;
@@ -149,9 +143,7 @@ static bool mg_bthing_mqtt_pub_state(const char *topic, mgos_bvarc_t state) {
 
 static void mg_bthing_mqtt_on_state_changed(int ev, void *ev_data, void *userdata) {
   if (!mgos_mqtt_global_is_connected()) return;
-
-  size_t heap1 = mgos_get_free_heap_size();
-  
+ 
   #ifdef MGOS_BTHING_HAVE_SHADOW
   struct mgos_bthing_shadow_state *state = (struct mgos_bthing_shadow_state *)ev_data;
   if (!mg_bthing_mqtt_pub_state(mgos_sys_config_get_bthing_mqtt_pub_topic(), state->full_shadow)) {
@@ -167,11 +159,6 @@ static void mg_bthing_mqtt_on_state_changed(int ev, void *ev_data, void *userdat
     }
   }
   #endif //MGOS_BTHING_HAVE_SHADOW
-
-  size_t heap2 = mgos_get_free_heap_size();
-  size_t heap_leak = (heap1 - heap2);
-  if (heap_leak != 0) LOG(LL_ERROR, ("Memory: %d bytes leaked! (%d - %d)", heap_leak, heap1, heap2));
-
 
   (void) userdata;
   (void) ev;

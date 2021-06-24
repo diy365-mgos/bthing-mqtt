@@ -32,6 +32,12 @@ libs:
   - origin: https://github.com/diy365-mgos/bthing
   - origin: https://github.com/diy365-mgos/bvar-json
 
+conds:
+  - when: build_vars.MGOS_BTHING_SHADOW_MODE == "enabled"
+    apply:
+      config_schema:
+        - ["bthing.mqtt.pub.delta_shadow", b, false, {title: "Enable delta-shadow publishing"}]
+
 tags:
   - c
 

@@ -146,7 +146,8 @@ static void mg_bthing_mqtt_on_state_changed(int ev, void *ev_data, void *userdat
  
   #ifdef MGOS_BTHING_HAVE_SHADOW
   struct mgos_bthing_shadow_state *state = (struct mgos_bthing_shadow_state *)ev_data;
-  if (!mg_bthing_mqtt_pub_state(mgos_sys_config_get_bthing_mqtt_pub_topic(), state->full_shadow)) {
+  if (!mg_bthing_mqtt_pub_state(mgos_sys_config_get_bthing_mqtt_pub_topic(), 
+    mgos_sys_config_get_bthing_mqtt_pub_delta_shadow() ? state->delta_shadow : state->full_shadow)) {
     LOG(LL_ERROR, ("Error publishing '%s' shadow.", mgos_sys_config_get_device_id()));
   }
 

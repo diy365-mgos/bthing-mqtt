@@ -152,11 +152,11 @@ static void mg_bthing_mqtt_on_state_changed(int ev, void *ev_data, void *userdat
   }
 
   #else
-  mgos_bthing_t thing = (mgos_bthing_t)ev_data;
-  struct mg_bthing_mqtt_item *item = mg_bthing_mqtt_get_item(thing);
+  struct mgos_bthing_state_changed_arg *arg = (struct mgos_bthing_state_changed_arg *)ev_data;
+  struct mg_bthing_mqtt_item *item = mg_bthing_mqtt_get_item(arg->thing);
   if (item && item->enabled) {
-    if (!mg_bthing_mqtt_pub_state(item->pub_topic, mg_bthing_get_raw_state(item->thing))) {
-      LOG(LL_ERROR, ("Error publishing '%s' state.", mgos_bthing_get_id(item->thing)));
+    if (!mg_bthing_mqtt_pub_state(item->pub_topic, arg->state)) {
+      LOG(LL_ERROR, ("Error publishing '%s' state.", mgos_bthing_get_id(arg->thing)));
     }
   }
   #endif //MGOS_BTHING_HAVE_SHADOW

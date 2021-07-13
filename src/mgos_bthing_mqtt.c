@@ -232,17 +232,17 @@ bool mgos_bthing_mqtt_init_topics() {
   }
 
   s_mqtt_topics.get_state = NULL;
-  mg_bthing_sreplace(mgos_sys_config_get_bthing_mqtt_get_state_topic(), MGOS_BTHING_ENV_THINGID, "", &s_mqtt_topics.get_state);
+  mg_bthing_sreplaces(mgos_sys_config_get_bthing_mqtt_get_state_topic(), &s_mqtt_topics.get_state, 2, MGOS_BTHING_ENV_THINGID, "", "//", "/");
   if (!s_mqtt_topics.get_state) s_mqtt_topics.get_state = (char *)mgos_sys_config_get_bthing_mqtt_get_state_topic();
   
   #ifdef MGOS_BTHING_HAVE_SHADOW
   if (mg_bthing_mqtt_use_shadow()) {
     s_mqtt_topics.set_state = NULL;
-    mg_bthing_sreplace(mgos_sys_config_get_bthing_mqtt_set_state_topic(), MGOS_BTHING_ENV_THINGID, "", &s_mqtt_topics.set_state);
+    mg_bthing_sreplaces(mgos_sys_config_get_bthing_mqtt_set_state_topic(), &s_mqtt_topics.set_state, 2, MGOS_BTHING_ENV_THINGID, "", "//", "/");
     if (!s_mqtt_topics.set_state) s_mqtt_topics.set_state = (char *)mgos_sys_config_get_bthing_mqtt_set_state_topic();
 
     s_mqtt_topics.state_updated = NULL;
-    mg_bthing_sreplace(mgos_sys_config_get_bthing_mqtt_state_updated_topic(), MGOS_BTHING_ENV_THINGID, "", &s_mqtt_topics.state_updated);
+    mg_bthing_sreplaces(mgos_sys_config_get_bthing_mqtt_state_updated_topic(), &s_mqtt_topics.state_updated, 2, MGOS_BTHING_ENV_THINGID, "", "//", "/");
     if (!s_mqtt_topics.state_updated) s_mqtt_topics.state_updated = (char *)mgos_sys_config_get_bthing_mqtt_state_updated_topic();
   }
   #else

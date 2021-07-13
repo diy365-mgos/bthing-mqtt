@@ -116,7 +116,7 @@ static void mg_bthing_mqtt_on_created(int ev, void *ev_data, void *userdata) {
   mgos_bthing_t thing = (mgos_bthing_t)ev_data;
   const char *id = mgos_bthing_get_id(thing);
 
-  mg_bthing_mqtt_add_item(thing);
+  struct mg_bthing_mqtt_item *item = mg_bthing_mqtt_add_item(thing);
 
   mg_bthing_sreplace(mgos_sys_config_get_bthing_mqtt_state_updated_topic(),
     MGOS_BTHING_ENV_THINGID, id, &(item->topics.state_updated));
@@ -158,8 +158,8 @@ static void mg_bthing_mqtt_on_state_changed(int ev, void *ev_data, void *userdat
  
   #ifdef MGOS_BTHING_HAVE_SHADOW
   if (mg_bthing_mqtt_use_shadow()) {
-    mgos_bvarc_t state = mgos_sys_config_get_bthing_mqtt_pub_delta_shadow() ?
-      ((struct mgos_bthing_shadow_state *)ev_data)->delta_shadow : ((struct mgos_bthing_shadow_state *)ev_data)->full_shadow)
+    mgos_bvarc_t state = (mgos_sys_config_get_bthing_mqtt_pub_delta_shadow() ?
+      ((struct mgos_bthing_shadow_state *)ev_data)->delta_shadow : ((struct mgos_bthing_shadow_state *)ev_data)->full_shadow);
     if (!mg_bthing_mqtt_pub_state(s_mqtt_topics.state_updated, state)) {
       LOG(LL_ERROR, ("Error publishing '%s' shadow.", mgos_sys_config_get_device_id()));
     }
@@ -233,17 +233,17 @@ bool mgos_bthing_mqtt_init_topics() {
 
   s_mqtt_topics.get_state = NULL;
   mg_bthing_sreplace(mgos_sys_config_get_bthing_mqtt_get_state_topic(), MGOS_BTHING_ENV_THINGID, "", &s_mqtt_topics.get_state);
-  if (!s_mqtt_topics.get_state) s_mqtt_topics.get_state = mgos_sys_config_get_bthing_mqtt_get_state_topic();
+  if (!s_mqtt_topics.get_state) s_mqtt_topics.get_state = (char *)mgos_sys_config_get_bthing_mqtt_get_state_topic();
   
   #ifdef MGOS_BTHING_HAVE_SHADOW
   if (mg_bthing_mqtt_use_shadow()) {
     s_mqtt_topics.set_state = NULL;
     mg_bthing_sreplace(mgos_sys_config_get_bthing_mqtt_set_state_topic(), MGOS_BTHING_ENV_THINGID, "", &s_mqtt_topics.set_state);
-    if (!s_mqtt_topics.set_state) s_mqtt_topics.set_state = mgos_sys_config_get_bthing_mqtt_set_state_topic();
+    if (!s_mqtt_topics.set_state) s_mqtt_topics.set_state = (char *)mgos_sys_config_get_bthing_mqtt_set_state_topic();
 
     s_mqtt_topics.state_updated = NULL;
     mg_bthing_sreplace(mgos_sys_config_get_bthing_mqtt_state_updated_topic(), MGOS_BTHING_ENV_THINGID, "", &s_mqtt_topics.state_updated);
-    if (!s_mqtt_topics.state_updated) s_mqtt_topics.state_updated = mgos_sys_config_get_bthing_mqtt_state_updated_topic();
+    if (!s_mqtt_topics.state_updated) s_mqtt_topics.state_updated = (char *)mgos_sys_config_get_bthing_mqtt_state_updated_topic();
   }
   #else
     s_mqtt_topics.state_updated = NULL;

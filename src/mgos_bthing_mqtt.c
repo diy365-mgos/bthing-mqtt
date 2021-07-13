@@ -26,7 +26,7 @@ static void mg_bthing_mqtt_on_set_state(struct mg_connection *, const char *, in
 static void mg_bthing_mqtt_on_get_state(struct mg_connection *nc, const char *topic,
                                         int topic_len, const char *msg, int msg_len,
                                         void *ud) {
-  mgos_event_trigger(MGOS_EV_BTHING_UPDATE_STATE, ud);
+  mgos_event_trigger(MGOS_EV_BTHING_UPDATE_STATE, (ud ? ((struct mg_bthing_mqtt_item *)ud)->thing : NULL));
 
   (void) nc;
   (void) topic;

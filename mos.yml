@@ -34,7 +34,7 @@ conds:
   - when: build_vars.MGOS_BTHING_SHADOW_MODE == "enabled"
     apply:
       config_schema:
-        - ["bthing.mqtt.pub_delta_shadow", b, false, {title: "Enable publishing delta shadow"}]
+        - ["bthing.mqtt.pub_delta_shadow", b, false, {title: "Enable publishing delta shadow instead of the full one"}]
 
 tags:
   - c

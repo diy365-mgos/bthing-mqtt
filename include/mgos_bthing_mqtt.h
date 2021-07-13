@@ -25,7 +25,7 @@
 extern "C" {
 #endif
 
-bool mgos_bthing_mqtt_enable(mgos_bthing_t thing, bool enable);
+bool mgos_bthing_mqtt_disable(mgos_bthing_t thing);
 
 #ifdef __cplusplus
 }

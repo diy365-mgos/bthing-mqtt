@@ -35,21 +35,33 @@ static void mg_bthing_mqtt_on_get_state(struct mg_connection *nc, const char *to
   (void) msg_len;
 }
 
-bool mgos_bthing_mqtt_enable(mgos_bthing_t thing, bool enable) {
-  if (mg_bthing_mqtt_use_shadow()) return false;
+bool mgos_bthing_mqtt_disable(mgos_bthing_t thing) {
+  #ifdef MGOS_BTHING_HAVE_SHADOW
+  if (mg_bthing_mqtt_use_shadow()) {
+    return mgos_bthing_shadow_disable(thing);
+  }
+  #endif //MGOS_BTHING_HAVE_SHADOW
+
   struct mg_bthing_mqtt_item *item = mg_bthing_mqtt_get_item(thing);
-  if (!item) return false;
-  if (item->enabled != enable) {
-    if (enable) {
-      mgos_mqtt_sub(item->topics.set_state, mg_bthing_mqtt_on_set_state, item);
-      mgos_mqtt_sub(item->topics.get_state, mg_bthing_mqtt_on_get_state, item);
-    } else {
-      if (!mgos_mqtt_unsub(item->topics.set_state)) return false;
-      if (!mgos_mqtt_unsub(item->topics.get_state)) return false;
+  if (item && item->enabled) {
+    if (!mgos_mqtt_unsub(item->topics.set_state) || 
+        !mgos_mqtt_unsub(item->topics.get_state)) {
+      return false;
     }
-    item->enabled = enable;
+    item->enabled = false;
   }
   return true;
+}
+
+void mg_bthing_mqtt_enable(mgos_bthing_t thing) {
+  if (!mg_bthing_mqtt_use_shadow()) {
+    struct mg_bthing_mqtt_item *item = mg_bthing_mqtt_get_item(thing);
+    if (item && !item->enabled) {
+      mgos_mqtt_sub(item->topics.set_state, mg_bthing_mqtt_on_set_state, item);
+      mgos_mqtt_sub(item->topics.get_state, mg_bthing_mqtt_on_get_state, item);
+      item->enabled = true;
+    }
+  }
 }
 
 bool mg_bthing_mqtt_birth_message_pub() {  
@@ -131,7 +143,7 @@ static void mg_bthing_mqtt_on_created(int ev, void *ev_data, void *userdata) {
   }
   #endif //MGOS_BTHING_HAVE_ACTUATORS
 
-  mgos_bthing_mqtt_enable(thing, true);
+  mg_bthing_mqtt_enable(thing);
 }
 
 #if MGOS_BTHING_HAVE_SENSORS

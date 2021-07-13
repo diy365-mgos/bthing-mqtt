@@ -28,17 +28,20 @@
 extern "C" {
 #endif
 
-#ifndef MGOS_BTHING_HAVE_SHADOW
+struct mg_bthing_mqtt_topics {
+  char *state_updated;
+  char *get_state;
+  #if MGOS_BTHING_HAVE_ACTUATORS
+  char *set_state;
+  #endif
+};
 
 struct mg_bthing_mqtt_item {
   bool enabled;
   mgos_bthing_t thing;
-  char *pub_topic;
-  char *sub_topic;
+  struct mg_bthing_mqtt_topics topics;
   struct mg_bthing_mqtt_item *next;
 };
-
-#endif //MGOS_BTHING_HAVE_SHADOW
 
 int mg_bthing_mqtt_pub(const char *topic, const char *msg, bool retain);
 int mg_bthing_mqtt_pubf(const char *topic, bool retain, const char *json_fmt, ...);
@@ -46,14 +49,9 @@ int mg_bthing_mqtt_pubv(const char *topic, bool retain, const char *json_fmt, va
 
 char *mg_bthing_mqtt_build_device_topic(const char *topic);
 
-#ifndef MGOS_BTHING_HAVE_SHADOW
-
-
 struct mg_bthing_mqtt_item *mg_bthing_mqtt_add_item(mgos_bthing_t thing);
 struct mg_bthing_mqtt_item *mg_bthing_mqtt_get_item(mgos_bthing_t thing);
 struct mg_bthing_mqtt_item *mg_bthing_mqtt_get_items();
-
-#endif //MGOS_BTHING_HAVE_SHADOW
 
 #ifdef __cplusplus
 }

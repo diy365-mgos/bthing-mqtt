@@ -1,13 +1,11 @@
 #include "mgos_mqtt.h"
 #include "mg_bthing_mqtt_sdk.h"
 
-#ifndef MGOS_BTHING_HAVE_SHADOW
 static struct mg_bthing_mqtt_item *s_mqtt_items = NULL;
-#endif
 
 int mg_bthing_mqtt_pub(const char *topic, const char *msg, bool retain) {
   return mgos_mqtt_pub(topic, msg, (msg == NULL ? 0 : strlen(msg)),
-      mgos_sys_config_get_bthing_mqtt_qos(), retain);
+    mgos_sys_config_get_bthing_mqtt_qos(), retain);
 }
 
 int mg_bthing_mqtt_pubf(const char *topic, bool retain, const char *json_fmt, ...) {
@@ -30,18 +28,16 @@ char *mg_bthing_mqtt_build_device_topic(const char *topic) {
   return NULL;
 }
 
-#ifndef MGOS_BTHING_HAVE_SHADOW
-
 struct mg_bthing_mqtt_item *mg_bthing_mqtt_add_item(mgos_bthing_t thing) {
   if (thing) {
     struct mg_bthing_mqtt_item *item = calloc(1, sizeof(struct mg_bthing_mqtt_item));
     item->thing = thing;
     item->enabled = false;
     if (!s_mqtt_items) {
-        s_mqtt_items = item;
+      s_mqtt_items = item;
     } else {
-        item->next = s_mqtt_items->next;
-        s_mqtt_items->next = item;
+      item->next = s_mqtt_items->next;
+      s_mqtt_items->next = item;
     }
     return item;
   }
@@ -60,5 +56,3 @@ struct mg_bthing_mqtt_item *mg_bthing_mqtt_get_item(mgos_bthing_t thing) {
 struct mg_bthing_mqtt_item *mg_bthing_mqtt_get_items() {
   return s_mqtt_items;
 }
-
-#endif //MGOS_BTHING_HAVE_SHADOW

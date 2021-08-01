@@ -158,6 +158,7 @@ static bool mg_bthing_mqtt_pub_state(const char *topic, mgos_bvarc_t state) {
     }
     if (payload) {
       int ret = mg_bthing_mqtt_pub(topic, payload, mgos_sys_config_get_bthing_mqtt_retain());
+      LOG(LL_INFO, ("MQTT > %s", payload));
       if (state_type != MGOS_BVAR_TYPE_STR) free(payload);
       return (ret > 0);
     }

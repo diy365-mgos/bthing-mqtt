@@ -165,26 +165,51 @@ static bool mg_bthing_mqtt_pub_state(const char *topic, mgos_bvarc_t state) {
   return false;
 }
 
-static void mg_bthing_mqtt_on_state_changed(int ev, void *ev_data, void *userdata) {
-  if (!mgos_mqtt_global_is_connected()) return;
+static bool mg_bthing_mqtt_try_pub_state(void *state) {
+  if (!mgos_mqtt_global_is_connected()) return false;
  
   #ifdef MGOS_BTHING_HAVE_SHADOW
   if (mg_bthing_mqtt_use_shadow()) {
     mgos_bvarc_t state = (mgos_sys_config_get_bthing_mqtt_pub_delta_shadow() ?
-      ((struct mgos_bthing_shadow_state *)ev_data)->delta_shadow : ((struct mgos_bthing_shadow_state *)ev_data)->full_shadow);
+      ((struct mgos_bthing_shadow_state *)state)->delta_shadow : ((struct mgos_bthing_shadow_state *)state)->full_shadow);
     if (!mg_bthing_mqtt_pub_state(s_mqtt_topics.state_updated, state)) {
       LOG(LL_ERROR, ("Error publishing '%s' shadow.", mgos_sys_config_get_device_id()));
+      return false;
     }
   }
   #endif //MGOS_BTHING_HAVE_SHADOW
 
   if (!mg_bthing_mqtt_use_shadow()) {
-    struct mgos_bthing_state_changed_arg *arg = (struct mgos_bthing_state_changed_arg *)ev_data;
+    struct mgos_bthing_state_changed_arg *arg = (struct mgos_bthing_state_changed_arg *)state;
     struct mg_bthing_mqtt_item *item = mg_bthing_mqtt_get_item(arg->thing);
     if (item && item->enabled) {
       if (!mg_bthing_mqtt_pub_state(item->topics.state_updated, arg->state)) {
         LOG(LL_ERROR, ("Error publishing '%s' state.", mgos_bthing_get_id(arg->thing)));
+        return false;
       }
+    }
+  }
+  return true;
+}
+
+static void mg_bthing_mqtt_on_state_changed(int ev, void *ev_data, void *userdata) {
+  mg_bthing_mqtt_try_pub_state(ev_data);
+  (void) userdata;
+  (void) ev;
+}
+
+static void mg_bthing_mqtt_on_state_updated(int ev, void *ev_data, void *userdata) {
+  #ifdef MGOS_BTHING_HAVE_SHADOW
+  
+  #endif //MGOS_BTHING_HAVE_SHADOW
+
+  if (!mg_bthing_mqtt_use_shadow()) {
+    struct mgos_bthing_state_updated_arg *arg = (struct mgos_bthing_state_updated_arg *)ev_data;
+    if (((arg->state_flags & MGOS_BTHING_STATE_FLAG_REQUESTING_UPDATE) == MGOS_BTHING_STATE_FLAG_REQUESTING_UPDATE) &&
+        ((arg->state_flags & MGOS_BTHING_STATE_FLAG_CHANGED) != MGOS_BTHING_STATE_FLAG_CHANGED)) {
+      // The state is not changed, but a MGOS_EV_BTHING_UPDATE_STATE event
+      // has been triggered, so I must forcibly publish the state.
+      mg_bthing_mqtt_try_pub_state((struct mgos_bthing_state_changed_arg *) arg);
     }
   }
 
@@ -286,12 +311,17 @@ bool mgos_bthing_mqtt_init() {
       LOG(LL_ERROR, ("Error registering MGOS_EV_BTHING_SHADOW_CHANGED handler."));
       return false;
     }
-    LOG(LL_DEBUG, ("This device is going to publish shadow-state updates here: %s", mgos_sys_config_get_bthing_mqtt_state_updated_topic()));
+    LOG(LL_DEBUG, ("This device is going to publish shadow-state updates here: %s",
+      mgos_sys_config_get_bthing_mqtt_state_updated_topic()));
   }
   #endif //MGOS_BTHING_HAVE_SHADOW
   if (!mg_bthing_mqtt_use_shadow()) {
     if (!mgos_event_add_handler(MGOS_EV_BTHING_STATE_CHANGED, mg_bthing_mqtt_on_state_changed, NULL)) {
       LOG(LL_ERROR, ("Error registering MGOS_EV_BTHING_STATE_CHANGED handler."));
+      return false;
+    }
+    if (!mgos_event_add_handler(MGOS_EV_BTHING_STATE_UPDATED, mg_bthing_mqtt_on_state_updated, NULL)) {
+      LOG(LL_ERROR, ("Error registering MGOS_EV_BTHING_STATE_UPDATED handler."));
       return false;
     }
   }

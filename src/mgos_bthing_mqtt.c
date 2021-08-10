@@ -12,6 +12,7 @@
 #endif
 
 static struct mg_bthing_mqtt_topics s_mqtt_topics;
+static bool s_is_getting_state = false;
 
 bool mg_bthing_mqtt_use_shadow() {
   #ifdef MGOS_BTHING_HAVE_SHADOW
@@ -26,7 +27,16 @@ static void mg_bthing_mqtt_on_set_state(struct mg_connection *, const char *, in
 static void mg_bthing_mqtt_on_get_state(struct mg_connection *nc, const char *topic,
                                         int topic_len, const char *msg, int msg_len,
                                         void *ud) {
-  mgos_event_trigger(MGOS_EV_BTHING_UPDATE_STATE, (ud ? ((struct mg_bthing_mqtt_item *)ud)->thing : NULL));
+  bool prev_value = s_is_getting_state;
+  s_is_getting_state = true;
+
+  if (ud) {
+    mgos_bthing_update_state(((struct mg_bthing_mqtt_item *)ud)->thing);
+  } else {
+    mgos_bthing_update_states();
+  }
+
+  s_is_getting_state = prev_value;
 
   (void) nc;
   (void) topic;
@@ -84,7 +94,8 @@ static void mg_bthing_mqtt_on_event(struct mg_connection *nc,
   if (ev == MG_EV_MQTT_CONNACK) {
     // Publish the 'birth' message 
     mg_bthing_mqtt_birth_message_pub();
-    mgos_event_trigger(MGOS_EV_BTHING_UPDATE_STATE, NULL);
+    // Force the state update of all registered bThings
+    mgos_bthing_update_states();
   } else if (ev == MG_EV_MQTT_DISCONNECT) {
     // todo
   }
@@ -180,7 +191,7 @@ static bool mg_bthing_mqtt_try_pub_state(void *state_data) {
   #endif //MGOS_BTHING_HAVE_SHADOW
 
   if (!mg_bthing_mqtt_use_shadow()) {
-    struct mgos_bthing_state_changed_arg *arg = (struct mgos_bthing_state_changed_arg *)state_data;
+    struct mgos_bthing_state *arg = (struct mgos_bthing_state *)state_data;
     struct mg_bthing_mqtt_item *item = mg_bthing_mqtt_get_item(arg->thing);
     if (item && item->enabled) {
       if (!mg_bthing_mqtt_pub_state(item->topics.state_updated, arg->state)) {
@@ -192,24 +203,18 @@ static bool mg_bthing_mqtt_try_pub_state(void *state_data) {
   return true;
 }
 
-static void mg_bthing_mqtt_on_state_changed(int ev, void *ev_data, void *userdata) {
-  mg_bthing_mqtt_try_pub_state(ev_data);
-  (void) userdata;
-  (void) ev;
-}
-
 static void mg_bthing_mqtt_on_state_updated(int ev, void *ev_data, void *userdata) {
   #ifdef MGOS_BTHING_HAVE_SHADOW
-  
+  if (mg_bthing_mqtt_use_shadow()) {
+    
+  }
   #endif //MGOS_BTHING_HAVE_SHADOW
 
   if (!mg_bthing_mqtt_use_shadow()) {
-    struct mgos_bthing_state_updated_arg *arg = (struct mgos_bthing_state_updated_arg *)ev_data;
-    if (((arg->state_flags & MGOS_BTHING_STATE_FLAG_REQUESTING_UPDATE) == MGOS_BTHING_STATE_FLAG_REQUESTING_UPDATE) &&
-        ((arg->state_flags & MGOS_BTHING_STATE_FLAG_CHANGED) != MGOS_BTHING_STATE_FLAG_CHANGED)) {
-      // The state is not changed, but a MGOS_EV_BTHING_UPDATE_STATE event
-      // has been triggered, so I must forcibly publish the state.
-      mg_bthing_mqtt_try_pub_state((struct mgos_bthing_state_changed_arg *) arg);
+    struct mgos_bthing_state *arg = (struct mgos_bthing_state *)ev_data;
+    if (((arg->state_flags & MGOS_BTHING_STATE_FLAG_CHANGED) == MGOS_BTHING_STATE_FLAG_CHANGED) || s_is_getting_state) {
+      // The state is changed, or the stete/get topic has been invoked.
+      mg_bthing_mqtt_try_pub_state(arg);
     }
   }
 
@@ -307,8 +312,8 @@ bool mgos_bthing_mqtt_init() {
   #if MGOS_BTHING_HAVE_SENSORS
   #ifdef MGOS_BTHING_HAVE_SHADOW
   if (mg_bthing_mqtt_use_shadow()) {
-    if (!mgos_event_add_handler(MGOS_EV_BTHING_SHADOW_CHANGED, mg_bthing_mqtt_on_state_changed, NULL)) {
-      LOG(LL_ERROR, ("Error registering MGOS_EV_BTHING_SHADOW_CHANGED handler."));
+    if (!mgos_event_add_handler(MGOS_EV_BTHING_SHADOW_UPDATED, mg_bthing_mqtt_on_state_updated, NULL)) {
+      LOG(LL_ERROR, ("Error registering MGOS_EV_BTHING_SHADOW_UPDATED handler."));
       return false;
     }
     LOG(LL_DEBUG, ("This device is going to publish shadow-state updates here: %s",
@@ -316,10 +321,6 @@ bool mgos_bthing_mqtt_init() {
   }
   #endif //MGOS_BTHING_HAVE_SHADOW
   if (!mg_bthing_mqtt_use_shadow()) {
-    if (!mgos_event_add_handler(MGOS_EV_BTHING_STATE_CHANGED, mg_bthing_mqtt_on_state_changed, NULL)) {
-      LOG(LL_ERROR, ("Error registering MGOS_EV_BTHING_STATE_CHANGED handler."));
-      return false;
-    }
     if (!mgos_event_add_handler(MGOS_EV_BTHING_STATE_UPDATED, mg_bthing_mqtt_on_state_updated, NULL)) {
       LOG(LL_ERROR, ("Error registering MGOS_EV_BTHING_STATE_UPDATED handler."));
       return false;

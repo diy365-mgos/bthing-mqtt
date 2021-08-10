@@ -165,13 +165,13 @@ static bool mg_bthing_mqtt_pub_state(const char *topic, mgos_bvarc_t state) {
   return false;
 }
 
-static bool mg_bthing_mqtt_try_pub_state(void *state) {
+static bool mg_bthing_mqtt_try_pub_state(void *state_data) {
   if (!mgos_mqtt_global_is_connected()) return false;
  
   #ifdef MGOS_BTHING_HAVE_SHADOW
   if (mg_bthing_mqtt_use_shadow()) {
     mgos_bvarc_t state = (mgos_sys_config_get_bthing_mqtt_pub_delta_shadow() ?
-      ((struct mgos_bthing_shadow_state *)state)->delta_shadow : ((struct mgos_bthing_shadow_state *)state)->full_shadow);
+      ((struct mgos_bthing_shadow_state *)state_data)->delta_shadow : ((struct mgos_bthing_shadow_state *)state_data)->full_shadow);
     if (!mg_bthing_mqtt_pub_state(s_mqtt_topics.state_updated, state)) {
       LOG(LL_ERROR, ("Error publishing '%s' shadow.", mgos_sys_config_get_device_id()));
       return false;
@@ -180,7 +180,7 @@ static bool mg_bthing_mqtt_try_pub_state(void *state) {
   #endif //MGOS_BTHING_HAVE_SHADOW
 
   if (!mg_bthing_mqtt_use_shadow()) {
-    struct mgos_bthing_state_changed_arg *arg = (struct mgos_bthing_state_changed_arg *)state;
+    struct mgos_bthing_state_changed_arg *arg = (struct mgos_bthing_state_changed_arg *)state_data;
     struct mg_bthing_mqtt_item *item = mg_bthing_mqtt_get_item(arg->thing);
     if (item && item->enabled) {
       if (!mg_bthing_mqtt_pub_state(item->topics.state_updated, arg->state)) {

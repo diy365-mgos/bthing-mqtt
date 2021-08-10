@@ -33,7 +33,7 @@ static void mg_bthing_mqtt_on_get_state(struct mg_connection *nc, const char *to
   if (ud) {
     mgos_bthing_update_state(((struct mg_bthing_mqtt_item *)ud)->thing);
   } else {
-    mgos_bthing_update_states();
+    mgos_bthing_update_states(MGOS_BTHING_TYPE_ANY);
   }
 
   s_is_getting_state = prev_value;
@@ -95,7 +95,7 @@ static void mg_bthing_mqtt_on_event(struct mg_connection *nc,
     // Publish the 'birth' message 
     mg_bthing_mqtt_birth_message_pub();
     // Force the state update of all registered bThings
-    mgos_bthing_update_states();
+    mgos_bthing_update_states(MGOS_BTHING_TYPE_ANY);
   } else if (ev == MG_EV_MQTT_DISCONNECT) {
     // todo
   }

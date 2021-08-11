@@ -191,11 +191,10 @@ static bool mg_bthing_mqtt_try_pub_state(void *state_data) {
   #endif //MGOS_BTHING_HAVE_SHADOW
 
   if (!mg_bthing_mqtt_use_shadow()) {
-    struct mgos_bthing_state *arg = (struct mgos_bthing_state *)state_data;
-    struct mg_bthing_mqtt_item *item = mg_bthing_mqtt_get_item(arg->thing);
+    struct mg_bthing_mqtt_item *item = mg_bthing_mqtt_get_item(((struct mgos_bthing_state *)state_data)->thing);
     if (item && item->enabled) {
-      if (!mg_bthing_mqtt_pub_state(item->topics.state_updated, arg->state)) {
-        LOG(LL_ERROR, ("Error publishing '%s' state.", mgos_bthing_get_id(arg->thing)));
+      if (!mg_bthing_mqtt_pub_state(item->topics.state_updated, ((struct mgos_bthing_state *)state_data)->state)) {
+        LOG(LL_ERROR, ("Error publishing '%s' state.", mgos_bthing_get_id(((struct mgos_bthing_state *)state_data)->thing)));
         return false;
       }
     }
@@ -204,18 +203,21 @@ static bool mg_bthing_mqtt_try_pub_state(void *state_data) {
 }
 
 static void mg_bthing_mqtt_on_state_updated(int ev, void *ev_data, void *userdata) {
+  bool is_changed = false;
   #ifdef MGOS_BTHING_HAVE_SHADOW
   if (mg_bthing_mqtt_use_shadow()) {
-    
+    is_changed = ((struct mgos_bthing_shadow_state *)ev_data)->is_canged;
   }
   #endif //MGOS_BTHING_HAVE_SHADOW
 
   if (!mg_bthing_mqtt_use_shadow()) {
-    struct mgos_bthing_state *arg = (struct mgos_bthing_state *)ev_data;
-    if (((arg->state_flags & MGOS_BTHING_STATE_FLAG_CHANGED) == MGOS_BTHING_STATE_FLAG_CHANGED) || s_is_getting_state) {
-      // The state is changed, or the stete/get topic has been invoked.
-      mg_bthing_mqtt_try_pub_state(arg);
-    }
+    is_changed = ((((struct mgos_bthing_state *)ev_data)->state_flags &
+      MGOS_BTHING_STATE_FLAG_CHANGED) == MGOS_BTHING_STATE_FLAG_CHANGED);
+  }
+
+  if (is_changed || || s_is_getting_state) {
+    // The state is changed, or the stete/get topic has been invoked.
+    mg_bthing_mqtt_try_pub_state(ev_data);
   }
 
   (void) userdata;

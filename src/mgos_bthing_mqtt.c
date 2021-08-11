@@ -206,7 +206,7 @@ static void mg_bthing_mqtt_on_state_updated(int ev, void *ev_data, void *userdat
   bool is_changed = false;
   #ifdef MGOS_BTHING_HAVE_SHADOW
   if (mg_bthing_mqtt_use_shadow()) {
-    is_changed = ((struct mgos_bthing_shadow_state *)ev_data)->is_canged;
+    is_changed = ((struct mgos_bthing_shadow_state *)ev_data)->is_changed;
   }
   #endif //MGOS_BTHING_HAVE_SHADOW
 
@@ -215,7 +215,7 @@ static void mg_bthing_mqtt_on_state_updated(int ev, void *ev_data, void *userdat
       MGOS_BTHING_STATE_FLAG_CHANGED) == MGOS_BTHING_STATE_FLAG_CHANGED);
   }
 
-  if (is_changed || || s_is_getting_state) {
+  if (is_changed || s_is_getting_state) {
     // The state is changed, or the stete/get topic has been invoked.
     mg_bthing_mqtt_try_pub_state(ev_data);
   }

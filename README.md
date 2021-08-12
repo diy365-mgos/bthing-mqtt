@@ -41,7 +41,7 @@ The library adds the `bthing.mqtt` section to the device configuration:
 In addition, following settings are available when the [bThings Shadow library](https://github.com/diy365-mgos/bthing-shadow) is included:
 ```javascript
 {
-  "pub_delta_shadow": true,    //Enable publishing delta shadow instead of the full one
+  "pub_delta_shadow": false,    //Enable publishing delta shadow instead of the full one
 }
 ```
 ## C/C++ API Reference

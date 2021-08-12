@@ -12,7 +12,6 @@
 #endif
 
 static struct mg_bthing_mqtt_topics s_mqtt_topics;
-static bool s_is_getting_state = false;
 
 bool mg_bthing_mqtt_use_shadow() {
   #ifdef MGOS_BTHING_HAVE_SHADOW
@@ -27,17 +26,11 @@ static void mg_bthing_mqtt_on_set_state(struct mg_connection *, const char *, in
 static void mg_bthing_mqtt_on_get_state(struct mg_connection *nc, const char *topic,
                                         int topic_len, const char *msg, int msg_len,
                                         void *ud) {
-  bool prev_value = s_is_getting_state;
-  s_is_getting_state = true;
-
   if (ud) {
     mgos_bthing_update_state(((struct mg_bthing_mqtt_item *)ud)->thing);
   } else {
-    LOG(LL_INFO, ("Getting all states...")); // CANCEL
     mgos_bthing_update_states(MGOS_BTHING_TYPE_ANY);
   }
-
-  s_is_getting_state = prev_value;
 
   (void) nc;
   (void) topic;
@@ -204,22 +197,20 @@ static bool mg_bthing_mqtt_try_pub_state(void *state_data) {
 }
 
 static void mg_bthing_mqtt_on_state_updated(int ev, void *ev_data, void *userdata) {
-  bool is_changed = false;
+  enum mgos_bthing_state_flag state_flags = MGOS_BTHING_STATE_FLAG_UNCHANGED ;
   #ifdef MGOS_BTHING_HAVE_SHADOW
   if (mg_bthing_mqtt_use_shadow()) {
-    is_changed = ((struct mgos_bthing_shadow_state *)ev_data)->is_changed;
-    LOG(LL_INFO, ("The shadow has been updated (is_changed=%d).", (int)is_changed)); // CANCEL
+    state_flags = ((struct mgos_bthing_shadow_state *)ev_data)->state_flags;
   }
   #endif //MGOS_BTHING_HAVE_SHADOW
 
   if (!mg_bthing_mqtt_use_shadow()) {
-    is_changed = ((((struct mgos_bthing_state *)ev_data)->state_flags &
-      MGOS_BTHING_STATE_FLAG_CHANGED) == MGOS_BTHING_STATE_FLAG_CHANGED);
+    state_flags = ((struct mgos_bthing_state *)ev_data)->state_flags;
   }
 
-  if (is_changed || s_is_getting_state) {
+  if ((state_flags & MGOS_BTHING_STATE_FLAG_CHANGED) == MGOS_BTHING_STATE_FLAG_CHANGED ||
+      (state_flags & MGOS_BTHING_STATE_FLAG_UPD_REQUESTED ) == MGOS_BTHING_STATE_FLAG_UPD_REQUESTED) {
     // The state is changed, or the stete/get topic has been invoked.
-    LOG(LL_INFO, ("Publishing the shadow (is_changed=%d, s_is_getting_state=%d)...", (int)is_changed, (int)s_is_getting_state)); // CANCEL
     mg_bthing_mqtt_try_pub_state(ev_data);
   }
 

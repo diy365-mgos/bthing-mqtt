@@ -27,9 +27,9 @@ static void mg_bthing_mqtt_on_get_state(struct mg_connection *nc, const char *to
                                         int topic_len, const char *msg, int msg_len,
                                         void *ud) {
   if (ud) {
-    mgos_bthing_update_state(((struct mg_bthing_mqtt_item *)ud)->thing);
+    mg_bthing_update_state(((struct mg_bthing_mqtt_item *)ud)->thing, true);
   } else {
-    mgos_bthing_update_states(MGOS_BTHING_TYPE_ANY);
+    mg_bthing_update_states(MGOS_BTHING_TYPE_ANY, true);
   }
 
   (void) nc;
@@ -209,7 +209,7 @@ static void mg_bthing_mqtt_on_state_updated(int ev, void *ev_data, void *userdat
   }
 
   if ((state_flags & MGOS_BTHING_STATE_FLAG_CHANGED) == MGOS_BTHING_STATE_FLAG_CHANGED ||
-      (state_flags & MGOS_BTHING_STATE_FLAG_UPD_REQUESTED ) == MGOS_BTHING_STATE_FLAG_UPD_REQUESTED) {
+      (state_flags & MGOS_BTHING_STATE_FLAG_UPD_REQUESTED) == MGOS_BTHING_STATE_FLAG_UPD_REQUESTED) {
     // The state is changed, or the stete/get topic has been invoked.
     mg_bthing_mqtt_try_pub_state(ev_data);
   }

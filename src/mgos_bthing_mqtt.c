@@ -196,6 +196,12 @@ static bool mg_bthing_mqtt_try_pub_state(void *state_data) {
   return true;
 }
 
+static void mg_bthing_mqtt_on_state_changed(int ev, void *ev_data, void *userdata) {
+  mg_bthing_mqtt_try_pub_state(ev_data);
+  (void) userdata;
+  (void) ev;
+}
+
 static void mg_bthing_mqtt_on_state_updated(int ev, void *ev_data, void *userdata) {
   enum mgos_bthing_state_flag state_flags = MGOS_BTHING_STATE_FLAG_UNCHANGED ;
   #ifdef MGOS_BTHING_HAVE_SHADOW
@@ -208,15 +214,16 @@ static void mg_bthing_mqtt_on_state_updated(int ev, void *ev_data, void *userdat
     state_flags = ((struct mgos_bthing_state *)ev_data)->state_flags;
   }
 
-  if ((state_flags & MGOS_BTHING_STATE_FLAG_CHANGED) == MGOS_BTHING_STATE_FLAG_CHANGED ||
-      (state_flags & MGOS_BTHING_STATE_FLAG_UPD_REQUESTED) == MGOS_BTHING_STATE_FLAG_UPD_REQUESTED) {
-    // The state is changed, or the stete/get topic has been invoked.
+  if ((state_flags & MGOS_BTHING_STATE_FLAG_CHANGED) != MGOS_BTHING_STATE_FLAG_CHANGED)
+    // The state/get topic has been invoked (most probably),
+    // or, in any case, the state has been updated, so I must try to publish it.
     mg_bthing_mqtt_try_pub_state(ev_data);
   }
 
   (void) userdata;
   (void) ev;
 }
+
 #endif //MGOS_BTHING_HAVE_SENSORS
 
 bool mgos_bthing_mqtt_init_topics() {
@@ -308,6 +315,10 @@ bool mgos_bthing_mqtt_init() {
   #if MGOS_BTHING_HAVE_SENSORS
   #ifdef MGOS_BTHING_HAVE_SHADOW
   if (mg_bthing_mqtt_use_shadow()) {
+    if (!mgos_event_add_handler(MGOS_EV_BTHING_SHADOW_CHANGED, mg_bthing_mqtt_on_state_changed, NULL)) {
+      LOG(LL_ERROR, ("Error registering MGOS_EV_BTHING_SHADOW_CHANGED handler."));
+      return false;
+    }
     if (!mgos_event_add_handler(MGOS_EV_BTHING_SHADOW_UPDATED, mg_bthing_mqtt_on_state_updated, NULL)) {
       LOG(LL_ERROR, ("Error registering MGOS_EV_BTHING_SHADOW_UPDATED handler."));
       return false;
@@ -317,6 +328,10 @@ bool mgos_bthing_mqtt_init() {
   }
   #endif //MGOS_BTHING_HAVE_SHADOW
   if (!mg_bthing_mqtt_use_shadow()) {
+    if (!mgos_event_add_handler(MGOS_EV_BTHING_STATE_CHANGED, mg_bthing_mqtt_on_state_changed, NULL)) {
+      LOG(LL_ERROR, ("Error registering MGOS_EV_BTHING_STATE_CHANGED handler."));
+      return false;
+    }
     if (!mgos_event_add_handler(MGOS_EV_BTHING_STATE_UPDATED, mg_bthing_mqtt_on_state_updated, NULL)) {
       LOG(LL_ERROR, ("Error registering MGOS_EV_BTHING_STATE_UPDATED handler."));
       return false;

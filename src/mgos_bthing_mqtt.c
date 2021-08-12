@@ -143,8 +143,10 @@ static void mg_bthing_mqtt_on_created(int ev, void *ev_data, void *userdata) {
 
   #if MGOS_BTHING_HAVE_ACTUATORS
   if (mgos_bthing_is_typeof(thing, MGOS_BTHING_TYPE_ACTUATOR)) {
+    LOG(LL_INFO, ("INITIALIZING SET_STATE topic...")); //CANCEL
     mg_bthing_sreplace(mgos_sys_config_get_bthing_mqtt_set_state_topic(), 
       MGOS_BTHING_ENV_THINGID, id, &(item->topics.set_state));
+    LOG(LL_INFO, ("SET_STATE = '%s'.", item->topics.set_state)); //CANCEL
   }
   #endif //MGOS_BTHING_HAVE_ACTUATORS
 

@@ -41,25 +41,6 @@ static void mg_bthing_mqtt_on_get_state(struct mg_connection *nc, const char *to
   (void) msg_len;
 }
 
-static void mg_bthing_mqtt_pub_ping() {
-  // publish availability (will message)
-  mg_bthing_mqtt_birth_message_pub();
-  // force to update all bThing states
-  mgos_bthing_update_states(MGOS_BTHING_TYPE_ANY);
-}
-
-static void mg_bthing_mqtt_on_ping(struct mg_connection *nc, const char *topic,
-                                   int topic_len, const char *msg, int msg_len,
-                                   void *ud) {
-  mg_bthing_mqtt_pub_ping();
-  (void) nc;
-  (void) topic;
-  (void) topic_len;
-  (void) msg;
-  (void) msg_len;
-  (void) ud;
-}
-
 bool mgos_bthing_mqtt_disable(mgos_bthing_t thing) {
   #ifdef MGOS_BTHING_HAVE_SHADOW
   if (mg_bthing_mqtt_use_shadow()) {
@@ -106,6 +87,25 @@ bool mg_bthing_mqtt_birth_message_pub() {
     }
   }
   return (msg_id > 0);
+}
+
+static void mg_bthing_mqtt_pub_ping() {
+  // publish availability (will message)
+  mg_bthing_mqtt_birth_message_pub();
+  // force to update all bThing states
+  mgos_bthing_update_states(MGOS_BTHING_TYPE_ANY);
+}
+
+static void mg_bthing_mqtt_on_ping(struct mg_connection *nc, const char *topic,
+                                   int topic_len, const char *msg, int msg_len,
+                                   void *ud) {
+  mg_bthing_mqtt_pub_ping();
+  (void) nc;
+  (void) topic;
+  (void) topic_len;
+  (void) msg;
+  (void) msg_len;
+  (void) ud;
 }
 
 static void mg_bthing_mqtt_on_event(struct mg_connection *nc,
@@ -277,7 +277,7 @@ bool mgos_bthing_mqtt_init_topics() {
   }
 
   // try to replace $device_id placehoder in ping_topic 
-  char *topic = mg_bthing_mqtt_build_device_topic(mgos_sys_config_get_bthing_mqtt_ping_topic());
+  topic = mg_bthing_mqtt_build_device_topic(mgos_sys_config_get_bthing_mqtt_ping_topic());
   if (topic) {
     LOG(LL_DEBUG, (cfg_upd, "bthing.mqtt.ping_topic", topic));
     mgos_sys_config_set_bthing_mqtt_ping_topic(topic);

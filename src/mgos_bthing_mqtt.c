@@ -391,7 +391,7 @@ bool mgos_bthing_mqtt_init() {
     LOG(LL_DEBUG, ("This device listen to 'get-state' commands here: %s", s_mqtt_topics.get_state));
   }
 
-  char *ping_topic = mgos_sys_config_get_bthing_mqtt_ping_topic();
+  const char *ping_topic = mgos_sys_config_get_bthing_mqtt_ping_topic();
   if (ping_topic) {
     mgos_mqtt_sub(ping_topic, mg_bthing_mqtt_on_ping, NULL);
     LOG(LL_DEBUG, ("This device listen to 'ping' commands here: %s", ping_topic));

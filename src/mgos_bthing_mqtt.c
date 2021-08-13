@@ -27,8 +27,10 @@ static void mg_bthing_mqtt_on_get_state(struct mg_connection *nc, const char *to
                                         int topic_len, const char *msg, int msg_len,
                                         void *ud) {
   if (ud) {
+    // force to update a specific bThing state
     mgos_bthing_update_state(((struct mg_bthing_mqtt_item *)ud)->thing);
   } else {
+    // force to update all bThing states
     mgos_bthing_update_states(MGOS_BTHING_TYPE_ANY);
   }
 
@@ -37,6 +39,25 @@ static void mg_bthing_mqtt_on_get_state(struct mg_connection *nc, const char *to
   (void) topic_len;
   (void) msg;
   (void) msg_len;
+}
+
+static void mg_bthing_mqtt_pub_ping() {
+  // publish availability (will message)
+  mg_bthing_mqtt_birth_message_pub();
+  // force to update all bThing states
+  mgos_bthing_update_states(MGOS_BTHING_TYPE_ANY);
+}
+
+static void mg_bthing_mqtt_on_ping(struct mg_connection *nc, const char *topic,
+                                   int topic_len, const char *msg, int msg_len,
+                                   void *ud) {
+  mg_bthing_mqtt_pub_ping();
+  (void) nc;
+  (void) topic;
+  (void) topic_len;
+  (void) msg;
+  (void) msg_len;
+  (void) ud;
 }
 
 bool mgos_bthing_mqtt_disable(mgos_bthing_t thing) {
@@ -92,10 +113,7 @@ static void mg_bthing_mqtt_on_event(struct mg_connection *nc,
                                      void *ev_data,
                                      void *user_data) {  
   if (ev == MG_EV_MQTT_CONNACK) {
-    // Publish the 'birth' message 
-    mg_bthing_mqtt_birth_message_pub();
-    // Force the state update of all registered bThings
-    mgos_bthing_update_states(MGOS_BTHING_TYPE_ANY);
+    mg_bthing_mqtt_pub_ping();
   } else if (ev == MG_EV_MQTT_DISCONNECT) {
     // todo
   }
@@ -258,7 +276,15 @@ bool mgos_bthing_mqtt_init_topics() {
     free(topic);
   }
 
-  // try to replace $device_id placehoder in disco_topic 
+  // try to replace $device_id placehoder in ping_topic 
+  char *topic = mg_bthing_mqtt_build_device_topic(mgos_sys_config_get_bthing_mqtt_ping_topic());
+  if (topic) {
+    LOG(LL_DEBUG, (cfg_upd, "bthing.mqtt.ping_topic", topic));
+    mgos_sys_config_set_bthing_mqtt_ping_topic(topic);
+    free(topic);
+  }
+
+  // try to replace $device_id placehoder in get_state_topic 
   topic = mg_bthing_mqtt_build_device_topic(mgos_sys_config_get_bthing_mqtt_get_state_topic());
   if (topic) {
     LOG(LL_DEBUG, (cfg_upd, "bthing.mqtt.get_state_topic", topic));
@@ -266,7 +292,7 @@ bool mgos_bthing_mqtt_init_topics() {
     free(topic);
   }
 
-  // try to replace $device_id placehoder in pub_topic 
+  // try to replace $device_id placehoder in state_updated_topic 
   topic = mg_bthing_mqtt_build_device_topic(mgos_sys_config_get_bthing_mqtt_state_updated_topic());
   if (topic) {
     LOG(LL_DEBUG, (cfg_upd, "bthing.mqtt.state_updated_topic", topic));
@@ -274,7 +300,7 @@ bool mgos_bthing_mqtt_init_topics() {
     free(topic);
   }
 
-  // try to replace $device_id placehoder in pub_topic 
+  // try to replace $device_id placehoder in set_state_topic 
   topic = mg_bthing_mqtt_build_device_topic(mgos_sys_config_get_bthing_mqtt_set_state_topic());
   if (topic) {
     LOG(LL_DEBUG, (cfg_upd, "bthing.mqtt.set_state_topic", topic));
@@ -349,15 +375,27 @@ bool mgos_bthing_mqtt_init() {
   #ifdef MGOS_BTHING_HAVE_SHADOW
   if (mg_bthing_mqtt_use_shadow()) {
     // subscribe for receiving set-state shadow messages
-    mgos_mqtt_sub(s_mqtt_topics.set_state, mg_bthing_mqtt_on_set_state, NULL);
-    LOG(LL_DEBUG, ("This device is going to listen to set-shadow-state messages here: %s", s_mqtt_topics.set_state));
+    if (s_mqtt_topics.set_state) {
+      mgos_mqtt_sub(s_mqtt_topics.set_state, mg_bthing_mqtt_on_set_state, NULL);
+      LOG(LL_DEBUG, ("This device is going to listen to set-shadow-state messages here: %s", s_mqtt_topics.set_state));
+    } else {
+      LOG(LL_ERROR, ("Invalid NULL set_state_topic setting. This device won't receive 'set-state' commands."));
+    }
   }
   #endif //MGOS_BTHING_HAVE_SHADOW
   #endif //MGOS_BTHING_HAVE_ACTUATORS
 
   // subscribe to the device get-state topic
-  mgos_mqtt_sub(s_mqtt_topics.get_state, mg_bthing_mqtt_on_get_state, NULL);
-  LOG(LL_DEBUG, ("This device is going to listen to get-state messages here: %s", s_mqtt_topics.get_state));
+  if (s_mqtt_topics.get_state) {
+    mgos_mqtt_sub(s_mqtt_topics.get_state, mg_bthing_mqtt_on_get_state, NULL);
+    LOG(LL_DEBUG, ("This device listen to 'get-state' commands here: %s", s_mqtt_topics.get_state));
+  }
+
+  char *ping_topic = mgos_sys_config_get_bthing_mqtt_ping_topic();
+  if (ping_topic) {
+    mgos_mqtt_sub(ping_topic, mg_bthing_mqtt_on_ping, NULL);
+    LOG(LL_DEBUG, ("This device listen to 'ping' commands here: %s", ping_topic));
+  }
  
   mgos_mqtt_add_global_handler(mg_bthing_mqtt_on_event, NULL);
 

@@ -30,13 +30,19 @@ To enable Shadow mode just include the [bThings Shadow library](https://github.c
 The library adds the `bthing.mqtt` section to the device configuration:
 ```javascript
 {
-  "birth_message": "online",                                                // Default MQTT birth message
-  "qos": 0,                                                                 // Default MQTT QOS value for publishing messages
-  "retain": false,                                                          // Default MQTT retain value for publishing messages
-  "state_updated_topic": "bthings/${device_id}/${bthing_id}/state/updated", //The the topic for publishing state updates
-  "set_state_topic": "bthings/${device_id}/${bthing_id}/state/set",         // The the topic for receiving set-state messages
-  "get_state_topic": "bthings/${device_id}/${bthing_id}/state/get",         // The the topic for getting the state
+  "birth_message": "online",                                                  // Default MQTT birth message
+  "qos": 0,                                                                   // Default MQTT QOS value for publishing messages
+  "retain": false,                                                            // Default MQTT retain value for publishing messages
+  "ping_topic": "$bthings/${device_id}/ping",                                 // The the topic for pinging the device
+  "state_updated_topic": "$bthings/${device_id}/${bthing_id}/state/updated",  //The the topic for publishing state updates
+  "set_state_topic": "$bthings/${device_id}/${bthing_id}/state/set",          // The the topic for receiving set-state messages
+  "get_state_topic": "$bthings/${device_id}/${bthing_id}/state/get",          // The the topic for getting the state
 }
+```
+The library sets these `mqtt` section settings as well:
+```javascript
+  "will_topic": "$bthings/${device_id}/LWT",
+  "will_message": "offline",
 ```
 In addition, following settings are available when the [bThings Shadow library](https://github.com/diy365-mgos/bthing-shadow) is included:
 ```javascript

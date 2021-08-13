@@ -310,19 +310,14 @@ bool mgos_bthing_mqtt_init_topics() {
     2, MGOS_BTHING_ENV_THINGID, "", "//", "/");
   if (!s_mqtt_topics.get_state) s_mqtt_topics.get_state = (char *)mgos_sys_config_get_bthing_mqtt_get_state_topic();
 
-  // initialize 'command' topic as <broadcast> topic (discard any $device_id placeholders)
-  s_mqtt_topics.command = NULL;
-  mg_bthing_sreplaces(mgos_sys_config_get_bthing_mqtt_cmd_topic(), &s_mqtt_topics.command,
+  // initialize 'broadcast_cmd' topic (discard any $device_id placeholders)
+  s_mqtt_topics.broadcast_cmd = NULL;
+  mg_bthing_sreplaces(mgos_sys_config_get_bthing_mqtt_cmd_topic(), &s_mqtt_topics.broadcast_cmd,
     2, MGOS_BTHING_ENV_DEVICEID, "", "//", "/");
-  if (!s_mqtt_topics.command) s_mqtt_topics.command = (char *)mgos_sys_config_get_bthing_mqtt_cmd_topic();
+  if (!s_mqtt_topics.broadcast_cmd) s_mqtt_topics.broadcast_cmd = (char *)mgos_sys_config_get_bthing_mqtt_cmd_topic();
 
-  // try to replace $device_id placehoder in 'cmd_topic'
-  topic = mg_bthing_mqtt_build_device_topic(mgos_sys_config_get_bthing_mqtt_cmd_topic());
-  if (topic) {
-    LOG(LL_DEBUG, (cfg_upd, "bthing.mqtt.cmd_topic", topic));
-    mgos_sys_config_get_bthing_mqtt_cmd_topic(topic);
-    free(topic);
-  }
+  // try to replace $device_id placehoder in 'state_updated_topic'
+  s_mqtt_topics.cmd = mg_bthing_mqtt_build_device_topic(mgos_sys_config_get_bthing_mqtt_cmd_topic());
 
   #ifdef MGOS_BTHING_HAVE_SHADOW
   if (mg_bthing_mqtt_use_shadow()) {
@@ -403,15 +398,14 @@ bool mgos_bthing_mqtt_init() {
     LOG(LL_DEBUG, ("This device listen to 'get-state' commands here: %s", s_mqtt_topics.get_state));
   }
 
-  if (s_mqtt_topics.command) {
-    mgos_mqtt_sub(s_mqtt_topics.command, mg_bthing_mqtt_on_cmd, NULL);
-    LOG(LL_DEBUG, ("This device listen to broadcast commands here: %s", s_mqtt_topics.command));
+  if (s_mqtt_topics.broadcast_cmd) {
+    mgos_mqtt_sub(s_mqtt_topics.broadcast_cmd, mg_bthing_mqtt_on_cmd, NULL);
+    LOG(LL_DEBUG, ("This device listen to broadcast commands here: %s", s_mqtt_topics.broadcast_cmd));
   }
 
-  const char *cmd_topic = mgos_sys_config_get_bthing_mqtt_ping_topic();
-  if (cmd_topic && s_mqtt_topics.command && (strcmp(cmd_topic, s_mqtt_topics.command) != 0)) {
-    mgos_mqtt_sub(cmd_topic, mg_bthing_mqtt_on_cmd, NULL);
-    LOG(LL_DEBUG, ("This device listen to commands here: %s", cmd_topic));
+  if (s_mqtt_topics.cmd) {
+    mgos_mqtt_sub(s_mqtt_topics.cmd, mg_bthing_mqtt_on_cmd, NULL);
+    LOG(LL_DEBUG, ("This device listen to commands here: %s", s_mqtt_topics.cmd));
   }
  
   mgos_mqtt_add_global_handler(mg_bthing_mqtt_on_event, NULL);

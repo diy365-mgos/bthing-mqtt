@@ -54,7 +54,6 @@ bool mgos_bthing_mqtt_disable(mgos_bthing_t thing) {
       if (!mgos_mqtt_unsub(item->topics.set_state)) return false;
     }
     #endif //MGOS_BTHING_HAVE_ACTUATORS
-    }
     item->enabled = false;
   }
   return true;

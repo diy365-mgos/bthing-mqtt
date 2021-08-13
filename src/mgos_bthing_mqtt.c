@@ -48,9 +48,12 @@ bool mgos_bthing_mqtt_disable(mgos_bthing_t thing) {
 
   struct mg_bthing_mqtt_item *item = mg_bthing_mqtt_get_item(thing);
   if (item && item->enabled) {
-    if (!mgos_mqtt_unsub(item->topics.set_state) || 
-        !mgos_mqtt_unsub(item->topics.get_state)) {
-      return false;
+    if (!mgos_mqtt_unsub(item->topics.get_state)) return false;
+    #if MGOS_BTHING_HAVE_ACTUATORS
+    if (mgos_bthing_is_typeof(thing, MGOS_BTHING_TYPE_ACTUATOR)) {
+      if (!mgos_mqtt_unsub(item->topics.set_state)) return false;
+    }
+    #endif //MGOS_BTHING_HAVE_ACTUATORS
     }
     item->enabled = false;
   }
@@ -61,7 +64,11 @@ void mg_bthing_mqtt_enable(mgos_bthing_t thing) {
   if (!mg_bthing_mqtt_use_shadow()) {
     struct mg_bthing_mqtt_item *item = mg_bthing_mqtt_get_item(thing);
     if (item && !item->enabled) {
-      mgos_mqtt_sub(item->topics.set_state, mg_bthing_mqtt_on_set_state, item);
+      #if MGOS_BTHING_HAVE_ACTUATORS
+      if (mgos_bthing_is_typeof(thing, MGOS_BTHING_TYPE_ACTUATOR)) {
+        mgos_mqtt_sub(item->topics.set_state, mg_bthing_mqtt_on_set_state, item);
+      }
+      #endif //MGOS_BTHING_HAVE_ACTUATORS
       mgos_mqtt_sub(item->topics.get_state, mg_bthing_mqtt_on_get_state, item);
       item->enabled = true;
     }
@@ -143,10 +150,8 @@ static void mg_bthing_mqtt_on_created(int ev, void *ev_data, void *userdata) {
 
   #if MGOS_BTHING_HAVE_ACTUATORS
   if (mgos_bthing_is_typeof(thing, MGOS_BTHING_TYPE_ACTUATOR)) {
-    LOG(LL_INFO, ("INITIALIZING SET_STATE topic (%s)...", mgos_sys_config_get_bthing_mqtt_set_state_topic())); //CANCEL
     mg_bthing_sreplace(mgos_sys_config_get_bthing_mqtt_set_state_topic(), 
       MGOS_BTHING_ENV_THINGID, id, &(item->topics.set_state));
-    LOG(LL_INFO, ("SET_STATE = '%s'.", item->topics.set_state ? item->topics.set_state : "NULL")); //CANCEL
   }
   #endif //MGOS_BTHING_HAVE_ACTUATORS
 

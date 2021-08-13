@@ -21,7 +21,7 @@ config_schema:
   - ["bthing.mqtt.set_state_topic", s, "bthings/${device_id}/${bthing_id}/state/set", {title: "The the topic for receiving set-state messages"}]
   - ["bthing.mqtt.get_state_topic", s, "bthings/${device_id}/${bthing_id}/state/get", {title: "The the topic for getting the state"}]
   
-  - ["mqtt.enable", true]
+  - ["mqtt.enable", false]
   - ["mqtt.server", ""]
   - ["mqtt.will_topic", "bthings/${device_id}/availability"]
   - ["mqtt.will_message", "offline"]

@@ -33,8 +33,8 @@ The library adds the `bthing.mqtt` section to the device configuration:
   "birth_message": "online",                                                  // Default MQTT birth message
   "qos": 0,                                                                   // Default MQTT QOS value for publishing messages
   "retain": false,                                                            // Default MQTT retain value for publishing messages
-  "ping_topic": "$bthings/${device_id}/ping",                                 // The the topic for pinging the device
-  "state_updated_topic": "$bthings/${device_id}/${bthing_id}/state/updated",  //The the topic for publishing state updates
+  "cmd_topic": "$bthings/${device_id}/cmd"                                    // The the topic for sending commands to the device
+  "state_updated_topic": "$bthings/${device_id}/${bthing_id}/state/updated",  // The the topic for publishing state updates
   "set_state_topic": "$bthings/${device_id}/${bthing_id}/state/set",          // The the topic for receiving set-state messages
   "get_state_topic": "$bthings/${device_id}/${bthing_id}/state/get",          // The the topic for getting the state
 }

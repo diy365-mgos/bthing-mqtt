@@ -25,6 +25,8 @@
 extern "C" {
 #endif
 
+#define MGOS_BTHING_MQTT_CMD_PING   "ping"
+
 bool mgos_bthing_mqtt_disable(mgos_bthing_t thing);
 
 #ifdef __cplusplus

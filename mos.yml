@@ -17,7 +17,7 @@ config_schema:
   - ["bthing.mqtt.birth_message", "s", "online", {title: "Default MQTT birth message"}]
   - ["bthing.mqtt.qos", i, 0, {title: "Default MQTT QOS value for publishing messages"}]
   - ["bthing.mqtt.retain", b, false, {title: "Default MQTT retain value for publishing messages"}]
-  - ["bthing.mqtt.ping_topic", s, "$bthings/${device_id}/ping", {title: "The the topic for pinging the device"}]
+  - ["bthing.mqtt.cmd_topic", s, "$bthings/${device_id}/cmd", {title: "The the topic for sending commands to the device"}]
   - ["bthing.mqtt.state_updated_topic", s, "$bthings/${device_id}/${bthing_id}/state/updated", {title: "The the topic for publishing state updates"}]
   - ["bthing.mqtt.set_state_topic", s, "$bthings/${device_id}/${bthing_id}/state/set", {title: "The the topic for receiving set-state messages"}]
   - ["bthing.mqtt.get_state_topic", s, "$bthings/${device_id}/${bthing_id}/state/get", {title: "The the topic for getting the state"}]

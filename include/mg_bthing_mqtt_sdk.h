@@ -29,6 +29,7 @@ extern "C" {
 #endif
 
 struct mg_bthing_mqtt_topics {
+  char *command;
   char *state_updated;
   char *get_state;
   #if MGOS_BTHING_HAVE_ACTUATORS

@@ -24,9 +24,11 @@ config_schema:
   - ["mqtt.enable", true]
   - ["mqtt.will_topic", "bthings/${device_id}/availability"]
   - ["mqtt.will_message", "offline"]
+  - ["mqtt.ssl_ca_cert", "ca.pem"]
 
 libs:
   - origin: https://github.com/mongoose-os-libs/mqtt
+  - origin: https://github.com/mongoose-os-libs/ca-bundle
   - origin: https://github.com/diy365-mgos/bthing
   - origin: https://github.com/diy365-mgos/bvar-json
 

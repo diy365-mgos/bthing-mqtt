@@ -190,23 +190,19 @@ static bool mg_bthing_mqtt_pub_state(const char *topic, mgos_bvarc_t state) {
       payload = json_asprintf("%M", json_printf_bvar, state);
     }
     if (payload) {
-      LOG(LL_INFO, ("PUBLISHING on '%s'", topic)); //CANCEL
       int ret = mg_bthing_mqtt_pub(topic, payload, mgos_sys_config_get_bthing_mqtt_retain());
       if (state_type != MGOS_BVAR_TYPE_STR) free(payload);
       return (ret > 0);
     }
   }
-  LOG(LL_INFO, ("FAILED TO PUBLISH")); //CANCEL
   return false;
 }
 
 static bool mg_bthing_mqtt_try_pub_state(void *state_data) {
-  LOG(LL_INFO, ("mg_bthing_mqtt_try_pub_state()...")); //CANCEL
   if (!mgos_mqtt_global_is_connected()) return false;
   
   #ifdef MGOS_BTHING_HAVE_SHADOW
   if (mg_bthing_mqtt_use_shadow()) {
-    LOG(LL_INFO, ("mg_bthing_mqtt_try_pub_state() ON SHADOW...")); //CANCEL
     mgos_bvarc_t state = (mgos_sys_config_get_bthing_mqtt_pub_delta_shadow() ?
       ((struct mgos_bthing_shadow_state *)state_data)->delta_shadow : ((struct mgos_bthing_shadow_state *)state_data)->full_shadow);
     if (!mg_bthing_mqtt_pub_state(s_mqtt_topics.state_updated, state)) {
@@ -218,9 +214,7 @@ static bool mg_bthing_mqtt_try_pub_state(void *state_data) {
 
   if (!mg_bthing_mqtt_use_shadow()) {
     struct mg_bthing_mqtt_item *item = mg_bthing_mqtt_get_item(((struct mgos_bthing_state *)state_data)->thing);
-    LOG(LL_INFO, ("mg_bthing_mqtt_try_pub_state() NOT ON SHADOW...")); //CANCEL
     if (item && item->enabled) {
-      LOG(LL_INFO, ("mg_bthing_mqtt_try_pub_state() NOT ON SHADOW #2...")); //CANCEL
       if (!mg_bthing_mqtt_pub_state(item->topics.state_updated, ((struct mgos_bthing_state *)state_data)->state)) {
         LOG(LL_ERROR, ("Error publishing '%s' state.", mgos_bthing_get_uid(((struct mgos_bthing_state *)state_data)->thing)));
         return false;

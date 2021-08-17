@@ -190,11 +190,13 @@ static bool mg_bthing_mqtt_pub_state(const char *topic, mgos_bvarc_t state) {
       payload = json_asprintf("%M", json_printf_bvar, state);
     }
     if (payload) {
+      LOG(LL_INFO, ("PUBLISHING on '%s'", topic)); //CANCEL
       int ret = mg_bthing_mqtt_pub(topic, payload, mgos_sys_config_get_bthing_mqtt_retain());
       if (state_type != MGOS_BVAR_TYPE_STR) free(payload);
       return (ret > 0);
     }
   }
+  LOG(LL_INFO, ("FAILED TO PUBLISH")); //CANCEL
   return false;
 }
 

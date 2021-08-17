@@ -159,7 +159,7 @@ void mg_bthing_mqtt_on_set_state(struct mg_connection *nc, const char *topic,
 static void mg_bthing_mqtt_on_created(int ev, void *ev_data, void *userdata) {
   if (ev != MGOS_EV_BTHING_CREATED) return;
   mgos_bthing_t thing = (mgos_bthing_t)ev_data;
-  const char *id = mgos_bthing_get_id(thing);
+  const char *id = mgos_bthing_get_uid(thing);
 
   struct mg_bthing_mqtt_item *item = mg_bthing_mqtt_add_item(thing);
 
@@ -216,7 +216,7 @@ static bool mg_bthing_mqtt_try_pub_state(void *state_data) {
     struct mg_bthing_mqtt_item *item = mg_bthing_mqtt_get_item(((struct mgos_bthing_state *)state_data)->thing);
     if (item && item->enabled) {
       if (!mg_bthing_mqtt_pub_state(item->topics.state_updated, ((struct mgos_bthing_state *)state_data)->state)) {
-        LOG(LL_ERROR, ("Error publishing '%s' state.", mgos_bthing_get_id(((struct mgos_bthing_state *)state_data)->thing)));
+        LOG(LL_ERROR, ("Error publishing '%s' state.", mgos_bthing_get_uid(((struct mgos_bthing_state *)state_data)->thing)));
         return false;
       }
     }

@@ -273,13 +273,13 @@ static void mg_bthing_mqtt_on_state_cmd1(struct mg_connection *nc, const char *t
   int seg_len;
   const char *seg_val;
 
-  strncpy(s_tmpbuf1, topic, topic_len);
-  LOG(LL_INFO, ("TOPIC '%s'", s_tmpbuf1)); // CANCEL
+  strncpy(&s_tmpbuf1, topic, topic_len);
+  LOG(LL_INFO, ("TOPIC '%s'", &s_tmpbuf1)); // CANCEL
 
   // get ${bthing_id} or ${bthing_dom} into s_tmpbuf1
   if (!mg_bthing_path_get_segment(topic, topic_len, '/', 2, &seg_val, &seg_len))
     return; // missing topic segment #2
-  strncpy(s_tmpbuf1, seg_val, seg_len);
+  strncpy(&s_tmpbuf1, seg_val, seg_len);
   s_tmpbuf1[seg_len] = '\0';
 
   // get the verb into seg_val

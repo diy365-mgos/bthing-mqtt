@@ -13,7 +13,7 @@
 
 #define MG_TMPBUF_SIZE 50
 static char s_tmpbuf1[MG_TMPBUF_SIZE];
-static char s_tmpbuf2[MG_TMPBUF_SIZE];
+//static char s_tmpbuf2[MG_TMPBUF_SIZE];
 
 static struct mg_bthing_mqtt_topics s_mqtt_topics;
 
@@ -249,13 +249,6 @@ static void mg_bthing_mqtt_on_cmd(struct mg_connection *nc, const char *topic,
     mg_bthing_mqtt_pub_ping();
   }
   
-  (void) nc; (void) topic; (void) topic_len; (void) msg; (void) msg_len; (void) ud;
-}
-
-static void mg_bthing_mqtt_on_xxxx(struct mg_connection *nc, const char *topic,
-                                  int topic_len, const char *msg, int msg_len, void *ud) {
-  if (!msg || (msg_len == 0)) return;
-
   (void) nc; (void) topic; (void) topic_len; (void) msg; (void) msg_len; (void) ud;
 }
 

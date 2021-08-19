@@ -12,8 +12,8 @@
 #endif
 
 #define MG_TMPBUF_SIZE 50
-static char *s_tmpbuf1[MG_TMPBUF_SIZE];
-static char *s_tmpbuf2[MG_TMPBUF_SIZE];
+static char s_tmpbuf1[MG_TMPBUF_SIZE];
+static char s_tmpbuf2[MG_TMPBUF_SIZE];
 
 static struct mg_bthing_mqtt_topics s_mqtt_topics;
 

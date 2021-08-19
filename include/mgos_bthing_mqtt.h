@@ -15,6 +15,34 @@
  * limitations under the License.
  */
 
+/*****************************************************************************************************************************
+  TOPIC PATH                                                            P/S   DESCRIPTION
+
+  COMMON TOPICS
+  - ${topic_dom}/cmd                                                    SUB   Receive command for all eddies (broadcas)
+  - ${topic_dom}/${device_id}/cmd                                       SUB   Receive command for this eddy
+  - ${topic_dom}/${device_id}/LWT                                       PUB   Publish LWT messages
+  
+  SHADOW-MODE TOPICS
+  - ${topic_dom}/${device_id}/state/+
+      ${topic_dom}/${device_id}/state/get                               SUB   Recieve get-state command for the shadow
+      ${topic_dom}/${device_id}/state/set                               SUB   Rrecieve set-state command for the shadow
+  - ${topic_dom}/${device_id}/state/updated                             PUB   Publish the shadow state
+  
+  STANDARD-MODE TOPICS
+  - ${topic_dom}/${device_id}/+/+/state/+
+      ${topic_dom}/${device_id}/${bthing_dom}/${bthing_id}/state/get    SUB   Recieve get-state command for a domain.bThing
+      ${topic_dom}/${device_id}/${bthing_dom}/${bthing_id}/state/set    SUB   Recieve set-state command for a domain.bThing
+  - ${topic_dom}/${device_id}/+/state/+
+      ${topic_dom}/${device_id}/${bthing_id}/state/get                  SUB   Recieve get-state command for a bThing
+      ${topic_dom}/${device_id}/${bthing_dom}/state/get                 SUB   Recieve get-state command for all domain.bThings
+      ${topic_dom}/${device_id}/${bthing_id}/state/set                  SUB   Recieve set-state command for a bThing
+      ${topic_dom}/${device_id}/${bthing_dom}/state/set                 SUB   Recieve set-state command for all domain.bThings
+  - ${topic_dom}/${device_id}/${bthing_dom}/${bthing_id}/state/updated  PUB   Publish the state of a domain.bThing
+  - ${topic_dom}/${device_id}/${bthing_id}/state/updated                PUB   Publish the state of a bThing
+
+*/
+
 #ifndef MGOS_BTHING_MQTT_H_
 #define MGOS_BTHING_MQTT_H_
 

@@ -463,7 +463,7 @@ bool mg_bthing_mqtt_sub_topics() {
   }
   #endif // MGOS_BTHING_HAVE_SHADOW
 
-  if (mg_bthing_mqtt_use_shadow()) {
+  if (!mg_bthing_mqtt_use_shadow()) {
     /* STANDARD-MODE TOPICS */
 
     // ${topic_dom}/${device_id}/+/+/state/+

@@ -175,7 +175,7 @@ static void mg_bthing_mqtt_on_created(int ev, void *ev_data, void *userdata) {
       mgos_bthing_get_id(thing), "state", "updated");
   }
 
-  LOG(LL_DEBUG, ("bThing 'id' is going to publish state here: %s",
+  LOG(LL_DEBUG, ("bThing '%s' is going to publish state here: %s",
     mgos_bthing_get_uid(thing), item->state_updated_topic));
 
   mg_bthing_mqtt_enable(thing);

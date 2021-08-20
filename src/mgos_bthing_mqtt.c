@@ -93,7 +93,7 @@ bool mg_bthing_mqtt_birth_message_pub() {
   return (msg_id > 0);
 }
 
-static void mg_bthing_mqtt_pub_ping() {
+static void mg_bthing_mqtt_pub_ping_response() {
   // publish availability (will message)
   mg_bthing_mqtt_birth_message_pub();
   // force to update all bThing states
@@ -105,7 +105,7 @@ static void mg_bthing_mqtt_on_event(struct mg_connection *nc,
                                      void *ev_data,
                                      void *user_data) {  
   if (ev == MG_EV_MQTT_CONNACK) {
-    mg_bthing_mqtt_pub_ping();
+    mg_bthing_mqtt_pub_ping_response();
   } else if (ev == MG_EV_MQTT_DISCONNECT) {
     // todo
   }
@@ -242,14 +242,34 @@ static void mg_bthing_mqtt_on_state_updated(int ev, void *ev_data, void *userdat
 
 #endif //MGOS_BTHING_HAVE_SENSORS
 
+/* 
+  Topic's handle for: ${topic_dom}/cmd 
+*/
+static void mg_bthing_mqtt_on_broadcast_cmd(struct mg_connection *nc, const char *topic,
+                                         int topic_len, const char *msg, int msg_len, void *ud) {
+  if (!msg || (msg_len == 0)) return;
+
+  /* COMMAND: 'ping' */
+  if (strncmp(msg, MGOS_BTHING_MQTT_CMD_PING, msg_len) == 0) {
+    mg_bthing_mqtt_pub_ping_response();
+  }
+
+  (void) nc; (void) topic; (void) topic_len; (void) ud;
+}
+
+/* 
+  Topic's handle for: ${topic_dom}/${device_id}/cmd
+*/
 static void mg_bthing_mqtt_on_cmd(struct mg_connection *nc, const char *topic,
                                   int topic_len, const char *msg, int msg_len, void *ud) {
   if (!msg || (msg_len == 0)) return;
+
+  /* COMMAND: 'ping' */
   if (strncmp(msg, MGOS_BTHING_MQTT_CMD_PING, msg_len) == 0) {
-    mg_bthing_mqtt_pub_ping();
+    mg_bthing_mqtt_pub_ping_response();
   }
   
-  (void) nc; (void) topic; (void) topic_len; (void) msg; (void) msg_len; (void) ud;
+  (void) nc; (void) topic; (void) topic_len; (void) ud;
 }
 
 #ifdef MGOS_BTHING_HAVE_SHADOW
@@ -383,13 +403,6 @@ static void mg_bthing_mqtt_on_state_cmd2(struct mg_connection *nc, const char *t
     return;
   }
   #endif //MGOS_BTHING_HAVE_ACTUATORS
-
-  (void) nc; (void) topic; (void) topic_len; (void) msg; (void) msg_len; (void) ud;
-}
-
-static void mg_bthing_mqtt_on_broadcast_cmd(struct mg_connection *nc, const char *topic,
-                                         int topic_len, const char *msg, int msg_len, void *ud) {
-  if (!msg || (msg_len == 0)) return;
 
   (void) nc; (void) topic; (void) topic_len; (void) msg; (void) msg_len; (void) ud;
 }

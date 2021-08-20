@@ -13,7 +13,7 @@
 
 #define MG_TMPBUF_SIZE 50
 static char s_tmpbuf1[MG_TMPBUF_SIZE];
-//static char s_tmpbuf2[MG_TMPBUF_SIZE];
+static char s_tmpbuf2[MG_TMPBUF_SIZE];
 
 static struct mg_bthing_mqtt_topics s_mqtt_topics;
 
@@ -313,7 +313,7 @@ static void mg_bthing_mqtt_on_state_cmd1(struct mg_connection *nc, const char *t
 
   /* MANAGE /state/get topics */
   if (strncmp(seg_val, MGOS_BTHING_MQTT_VERB_GET, seg_len) == 0) {
-    item = mg_bthing_mqtt_get_item(mgos_get_by_id(s_tmpbuf1, NULL));
+    item = mg_bthing_mqtt_get_item(mgos_bthing_get_by_id(s_tmpbuf1, NULL));
     if (item && item->enabled) {
       // update one single thing ${bthing_id}
       mgos_bthing_update_state(item->thing);
@@ -369,7 +369,7 @@ static void mg_bthing_mqtt_on_state_cmd2(struct mg_connection *nc, const char *t
 
   /* MANAGE /state/get topic */
   if (strncmp(seg_val, MGOS_BTHING_MQTT_VERB_GET, seg_len) == 0) {
-    item = mg_bthing_mqtt_get_item(mgos_get_by_id(s_tmpbuf1, s_tmpbuf2));
+    item = mg_bthing_mqtt_get_item(mgos_bthing_get_by_id(s_tmpbuf1, s_tmpbuf2));
     if (item && item->enabled) {
       // update one single thing ${bthing_dom}/${bthing_id}
       mgos_bthing_update_state(item->thing);

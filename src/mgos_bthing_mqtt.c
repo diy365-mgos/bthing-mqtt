@@ -93,8 +93,8 @@ static bool mg_bthing_mqtt_set_item_state(const char* id_or_domain, const char *
   if (item && !item->enabled) return false;
 
   mgos_bvar_t var_state = NULL;
-  if (!mgos_bvar_json_try_bscanf(msg, msg_len, &var_state)) {
-    var_state = mgos_bvar_new_nstr(msg, msg_len);
+  if (!mgos_bvar_json_try_bscanf(state, state_len, &var_state)) {
+    var_state = mgos_bvar_new_nstr(state, state_len);
   }
 
   bool ret = true;

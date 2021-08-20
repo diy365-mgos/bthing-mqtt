@@ -15,7 +15,7 @@
 static char s_tmpbuf1[MG_TMPBUF_SIZE];
 static char s_tmpbuf2[MG_TMPBUF_SIZE];
 
-static struct mg_bthing_mqtt_topics s_mqtt_topics;
+static char *s_state_updated_topic = NULL;
 
 bool mg_bthing_mqtt_use_shadow() {
   #ifdef MGOS_BTHING_HAVE_SHADOW
@@ -419,6 +419,7 @@ bool mg_bthing_mqtt_init_topics() {
   #ifdef MGOS_BTHING_HAVE_SHADOW
   if (mg_bthing_mqtt_use_shadow()) {
     s_state_updated_topic = mgos_bthing_sjoin("/", 4, topic_dom, device_id, "state", "updated");
+    LOG(LL_DEBUG, ("This device is going to publish shadow-state updates here: %s", s_state_updated_topic));
   }
   #else
   s_state_updated_topic = NULL;
@@ -509,8 +510,6 @@ bool mgos_bthing_mqtt_init() {
       LOG(LL_ERROR, ("Error registering MGOS_EV_BTHING_SHADOW_UPDATED handler."));
       return false;
     }
-    LOG(LL_DEBUG, ("This device is going to publish shadow-state updates here: %s",
-      mgos_sys_config_get_bthing_mqtt_state_updated_topic()));
   }
   #endif //MGOS_BTHING_HAVE_SHADOW
   if (!mg_bthing_mqtt_use_shadow()) {

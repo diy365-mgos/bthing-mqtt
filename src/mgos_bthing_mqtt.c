@@ -162,7 +162,7 @@ static void mg_bthing_mqtt_on_created(int ev, void *ev_data, void *userdata) {
   if (ev != MGOS_EV_BTHING_CREATED) return;
   mgos_bthing_t thing = (mgos_bthing_t)ev_data;
   
-   mg_bthing_mqtt_add_item(thing);
+  struct mg_bthing_mqtt_item *item = mg_bthing_mqtt_add_item(thing);
 
   const char *domain = mgos_bthing_get_domain(thing);
   if (domain) {

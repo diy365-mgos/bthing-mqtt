@@ -274,7 +274,7 @@ static void mg_bthing_mqtt_on_shadow_state_cmd(struct mg_connection *nc, const c
     mgos_bthing_update_states(MGOS_BTHING_FILTER_BY_NOTHING);
   }
   
-  #if //MGOS_BTHING_HAVE_ACTUATORS
+  #if MGOS_BTHING_HAVE_ACTUATORS
   /* MENAGE /state/set topic */
   if (strncmp(seg_val, MGOS_BTHING_MQTT_VERB_SET, seg_len) == 0 && msg_len > 0) {
     // TODO: complete here
@@ -329,7 +329,7 @@ static void mg_bthing_mqtt_on_state_cmd1(struct mg_connection *nc, const char *t
     }
   }
   
-  #if //MGOS_BTHING_HAVE_ACTUATORS
+  #if MGOS_BTHING_HAVE_ACTUATORS
   /* MANAGE /state/set topics */
   if (strncmp(seg_val, MGOS_BTHING_MQTT_VERB_SET, seg_len) == 0 && msg_len > 0) {
     // TODO: complete here
@@ -376,7 +376,7 @@ static void mg_bthing_mqtt_on_state_cmd2(struct mg_connection *nc, const char *t
     }
   }
   
-  #if //MGOS_BTHING_HAVE_ACTUATORS
+  #if MGOS_BTHING_HAVE_ACTUATORS
   /* MANAGE /state/set topic */
   if (strncmp(seg_val, MGOS_BTHING_MQTT_VERB_SET, seg_len) == 0 && msg_len > 0) {
     // TODO: complete here

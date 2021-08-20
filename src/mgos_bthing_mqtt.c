@@ -175,6 +175,9 @@ static void mg_bthing_mqtt_on_created(int ev, void *ev_data, void *userdata) {
       mgos_bthing_get_id(thing), "state", "updated");
   }
 
+  LOG(LL_DEBUG, ("bThing 'id' is going to publish state here: %s",
+    mgos_bthing_get_uid(thing), item->state_updated_topic));
+
   mg_bthing_mqtt_enable(thing);
 }
 
@@ -419,7 +422,7 @@ bool mg_bthing_mqtt_init_topics() {
   #ifdef MGOS_BTHING_HAVE_SHADOW
   if (mg_bthing_mqtt_use_shadow()) {
     s_state_updated_topic = mgos_bthing_sjoin("/", 4, topic_dom, device_id, "state", "updated");
-    LOG(LL_DEBUG, ("This device is going to publish shadow-state updates here: %s", s_state_updated_topic));
+    LOG(LL_DEBUG, ("Shadow-state updates are going to be published here: %s", s_state_updated_topic));
   }
   #else
   s_state_updated_topic = NULL;
@@ -455,7 +458,7 @@ bool mg_bthing_mqtt_sub_topics() {
     // ${topic_dom}/${device_id}/state/+
     topic = mgos_bthing_sjoin("/", 4, topic_dom, device_id, "state", "+");
     mgos_mqtt_sub(topic, mg_bthing_mqtt_on_shadow_state_cmd, NULL);
-    LOG(LL_DEBUG, ("Looking for shadow state commands here: %s", topic));
+    LOG(LL_DEBUG, ("Looking for shadow-state commands here: %s", topic));
     // free(topic);
   }
   #endif // MGOS_BTHING_HAVE_SHADOW

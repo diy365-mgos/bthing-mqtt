@@ -28,19 +28,10 @@
 extern "C" {
 #endif
 
-struct mg_bthing_mqtt_topics {
-  char *broadcast_cmd;
-  char *cmd;
-  char *state_updated;
-  #if MGOS_BTHING_HAVE_ACTUATORS
-  char *set_state;
-  #endif
-};
-
 struct mg_bthing_mqtt_item {
   bool enabled;
   mgos_bthing_t thing;
-  struct mg_bthing_mqtt_topics topics;
+  char *state_updated_topic;
   struct mg_bthing_mqtt_item *next;
 };
 

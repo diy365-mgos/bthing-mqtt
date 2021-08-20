@@ -25,8 +25,6 @@ bool mg_bthing_mqtt_use_shadow() {
   #endif
 }
 
-static void mg_bthing_mqtt_on_set_state(struct mg_connection *, const char *, int, const char *, int, void *);
-
 bool mgos_bthing_mqtt_disable(mgos_bthing_t thing) {
   #ifdef MGOS_BTHING_HAVE_SHADOW
   if (mg_bthing_mqtt_use_shadow()) {
@@ -69,6 +67,52 @@ static void mg_bthing_mqtt_pub_ping_response() {
   // force to update all bThing states
   mgos_bthing_update_states(MGOS_BTHING_FILTER_BY_NOTHING);
 }
+
+static bool mg_bthing_mqtt_update_item_state(const char* id_or_domain, conts char *domain) {
+  mgos_bthing_t thing = (domain ? mgos_bthing_get_by_id(id_or_domain, domain) : mgos_bthing_get_by_id(id_or_domain, NULL));
+  struct mg_bthing_mqtt_item *item = mg_bthing_mqtt_get_item(thing);
+  if (item && !item->enabled) return false;
+
+  if (item) {
+    // update one single thing
+    mgos_bthing_update_state(item->thing);
+  } else {
+    // (try) update all things in the domain
+    mgos_bthing_update_states(MGOS_BTHING_FILTER_BY_DOMAIN, s_tmpbuf1);
+  }
+  return false;
+}
+
+#if MGOS_BTHING_HAVE_ACTUATORS
+
+static bool mg_bthing_mqtt_set_item_state(const char* id_or_domain, conts char *domain, const char* state, int state_len) {
+  if (state == NULL || state_len <= 0) return false; 
+
+  mgos_bthing_t thing = (domain ? mgos_bthing_get_by_id(id_or_domain, domain) : mgos_bthing_get_by_id(id_or_domain, NULL));
+  struct mg_bthing_mqtt_item *item = mg_bthing_mqtt_get_item(thing);
+  if (item && !item->enabled) return false;
+
+  mgos_bvar_t var_state = NULL;
+  if (!mgos_bvar_json_try_bscanf(msg, msg_len, &var_state)) {
+    var_state = mgos_bvar_new_nstr(msg, msg_len);
+  }
+
+  bool ret = true;
+  if (item) {
+    // ste the state of one single thing
+    ret = mgos_bthing_set_state(item->thing, var_state);
+  } else {
+    // ste the state of all things ij a domain
+    mgos_bthing_enum_t things = mgos_bthing_get_all();
+    while(mgos_bthing_filter_get_next(&things, &thing, MGOS_BTHING_FILTER_BY_DOMAIN, id_or_domain) && ret) {
+      ret = mgos_bthing_set_state(thing, var_state);
+    }
+  }
+  mgos_bvar_free(var_state);
+  return ret;
+}
+
+#endif // MGOS_BTHING_HAVE_ACTUATORS
 
 static void mg_bthing_mqtt_on_event(struct mg_connection *nc,
                                      int ev,
@@ -219,8 +263,8 @@ static void mg_bthing_mqtt_on_broadcast_cmd(struct mg_connection *nc, const char
   /* COMMAND: 'ping' */
   if (strncmp(msg, MGOS_BTHING_MQTT_CMD_PING, msg_len) == 0) {
     mg_bthing_mqtt_pub_ping_response();
+    return; // DONE
   }
-
   (void) nc; (void) topic; (void) topic_len; (void) ud;
 }
 
@@ -234,8 +278,8 @@ static void mg_bthing_mqtt_on_cmd(struct mg_connection *nc, const char *topic,
   /* COMMAND: 'ping' */
   if (strncmp(msg, MGOS_BTHING_MQTT_CMD_PING, msg_len) == 0) {
     mg_bthing_mqtt_pub_ping_response();
+    return; // DONE
   }
-  
   (void) nc; (void) topic; (void) topic_len; (void) ud;
 }
 
@@ -250,6 +294,7 @@ static void mg_bthing_mqtt_on_shadow_state_cmd(struct mg_connection *nc, const c
                                                int topic_len, const char *msg, int msg_len, void *ud) {
   int seg_len;
   const char *seg_val;
+  if (!mg_bthing_mqtt_use_shadow()) return;
 
   // seg_val = verb (get or set)
   if (!mg_bthing_path_get_segment(topic, topic_len, '/', 3, &seg_val, &seg_len))
@@ -259,13 +304,14 @@ static void mg_bthing_mqtt_on_shadow_state_cmd(struct mg_connection *nc, const c
   if (strncmp(seg_val, MGOS_BTHING_MQTT_VERB_GET, seg_len) == 0) {
     // force to update all bThing states (and the shadow consequently)
     mgos_bthing_update_states(MGOS_BTHING_FILTER_BY_NOTHING);
+    return; // DONE
   }
   
   #if MGOS_BTHING_HAVE_ACTUATORS
   /* MENAGE /state/set topic */
   if (strncmp(seg_val, MGOS_BTHING_MQTT_VERB_SET, seg_len) == 0 && msg_len > 0) {
-    // TODO: complete here
-    return;
+    mgos_bthing_shadow_json_set(msg, msg_len);
+    return; // DONE
   }
   #endif //MGOS_BTHING_HAVE_ACTUATORS
 
@@ -285,6 +331,7 @@ static void mg_bthing_mqtt_on_state_cmd1(struct mg_connection *nc, const char *t
                                          int topic_len, const char *msg, int msg_len, void *ud) {
   int seg_len;
   const char *seg_val;
+  if (mg_bthing_mqtt_use_shadow()) return;
 
   // s_tmpbuf1 = ${bthing_id} or ${bthing_dom}
   if (!mg_bthing_path_get_segment(topic, topic_len, '/', 2, &seg_val, &seg_len))
@@ -298,21 +345,15 @@ static void mg_bthing_mqtt_on_state_cmd1(struct mg_connection *nc, const char *t
 
   /* MANAGE /state/get topics */
   if (strncmp(seg_val, MGOS_BTHING_MQTT_VERB_GET, seg_len) == 0) {
-    struct mg_bthing_mqtt_item *item = mg_bthing_mqtt_get_item(mgos_bthing_get_by_id(s_tmpbuf1, NULL));
-    if (item && item->enabled) {
-      // update one single thing ${bthing_id}
-      mgos_bthing_update_state(item->thing);
-    } else if (!item) {
-      // update all things in domain ${bthing_dom}
-      mgos_bthing_update_states(MGOS_BTHING_FILTER_BY_DOMAIN, s_tmpbuf1);
-    }
+    mg_bthing_mqtt_update_item_state(s_tmpbuf1, NULL);
+    return; // DONE
   }
   
   #if MGOS_BTHING_HAVE_ACTUATORS
   /* MANAGE /state/set topics */
   if (strncmp(seg_val, MGOS_BTHING_MQTT_VERB_SET, seg_len) == 0 && msg_len > 0) {
-    // TODO: complete here
-    return;
+    mg_bthing_mqtt_set_item_state(s_tmpbuf1, NULL, msg, msg_len);
+    return; // DONE
   }
   #endif //MGOS_BTHING_HAVE_ACTUATORS
 
@@ -347,18 +388,15 @@ static void mg_bthing_mqtt_on_state_cmd2(struct mg_connection *nc, const char *t
 
   /* MANAGE /state/get topic */
   if (strncmp(seg_val, MGOS_BTHING_MQTT_VERB_GET, seg_len) == 0) {
-    struct mg_bthing_mqtt_item *item = mg_bthing_mqtt_get_item(mgos_bthing_get_by_id(s_tmpbuf1, s_tmpbuf2));
-    if (item && item->enabled) {
-      // update one single thing ${bthing_dom}/${bthing_id}
-      mgos_bthing_update_state(item->thing);
-    }
+    mg_bthing_mqtt_update_item_state(s_tmpbuf2, s_tmpbuf1));
+    return; // DONE
   }
   
   #if MGOS_BTHING_HAVE_ACTUATORS
   /* MANAGE /state/set topic */
   if (strncmp(seg_val, MGOS_BTHING_MQTT_VERB_SET, seg_len) == 0 && msg_len > 0) {
-    // TODO: complete here
-    return;
+    mg_bthing_mqtt_set_item_state(s_tmpbuf2, s_tmpbuf1, msg, msg_len);
+    return; // DONE
   }
   #endif //MGOS_BTHING_HAVE_ACTUATORS
 

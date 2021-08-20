@@ -27,24 +27,6 @@ bool mg_bthing_mqtt_use_shadow() {
 
 static void mg_bthing_mqtt_on_set_state(struct mg_connection *, const char *, int, const char *, int, void *);
 
-static void mg_bthing_mqtt_on_get_state(struct mg_connection *nc, const char *topic,
-                                        int topic_len, const char *msg, int msg_len,
-                                        void *ud) {
-  if (ud) {
-    // force to update a specific bThing state
-    mgos_bthing_update_state(((struct mg_bthing_mqtt_item *)ud)->thing);
-  } else {
-    // force to update all bThing states
-    mgos_bthing_update_states(MGOS_BTHING_TYPE_ANY);
-  }
-
-  (void) nc;
-  (void) topic;
-  (void) topic_len;
-  (void) msg;
-  (void) msg_len;
-}
-
 bool mgos_bthing_mqtt_disable(mgos_bthing_t thing) {
   #ifdef MGOS_BTHING_HAVE_SHADOW
   if (mg_bthing_mqtt_use_shadow()) {
@@ -54,12 +36,6 @@ bool mgos_bthing_mqtt_disable(mgos_bthing_t thing) {
 
   struct mg_bthing_mqtt_item *item = mg_bthing_mqtt_get_item(thing);
   if (item && item->enabled) {
-    if (!mgos_mqtt_unsub(item->topics.get_state)) return false;
-    #if MGOS_BTHING_HAVE_ACTUATORS
-    if (mgos_bthing_is_typeof(thing, MGOS_BTHING_TYPE_ACTUATOR)) {
-      if (!mgos_mqtt_unsub(item->topics.set_state)) return false;
-    }
-    #endif //MGOS_BTHING_HAVE_ACTUATORS
     item->enabled = false;
   }
   return true;
@@ -69,12 +45,6 @@ void mg_bthing_mqtt_enable(mgos_bthing_t thing) {
   if (!mg_bthing_mqtt_use_shadow()) {
     struct mg_bthing_mqtt_item *item = mg_bthing_mqtt_get_item(thing);
     if (item && !item->enabled) {
-      #if MGOS_BTHING_HAVE_ACTUATORS
-      if (mgos_bthing_is_typeof(thing, MGOS_BTHING_TYPE_ACTUATOR)) {
-        mgos_mqtt_sub(item->topics.set_state, mg_bthing_mqtt_on_set_state, item);
-      }
-      #endif //MGOS_BTHING_HAVE_ACTUATORS
-      mgos_mqtt_sub(item->topics.get_state, mg_bthing_mqtt_on_get_state, item);
       item->enabled = true;
     }
   }
@@ -97,7 +67,7 @@ static void mg_bthing_mqtt_pub_ping_response() {
   // publish availability (will message)
   mg_bthing_mqtt_birth_message_pub();
   // force to update all bThing states
-  mgos_bthing_update_states(MGOS_BTHING_TYPE_ANY);
+  mgos_bthing_update_states(MGOS_BTHING_FILTER_BY_NOTHING);
 }
 
 static void mg_bthing_mqtt_on_event(struct mg_connection *nc,
@@ -153,9 +123,6 @@ static void mg_bthing_mqtt_on_created(int ev, void *ev_data, void *userdata) {
 
   mg_bthing_sreplace(mgos_sys_config_get_bthing_mqtt_state_updated_topic(),
     MGOS_BTHING_ENV_THINGID, id, &(item->topics.state_updated));
-
-  mg_bthing_sreplace(mgos_sys_config_get_bthing_mqtt_get_state_topic(),
-    MGOS_BTHING_ENV_THINGID, id, &(item->topics.get_state));
 
   #if MGOS_BTHING_HAVE_ACTUATORS
   if (mgos_bthing_is_typeof(thing, MGOS_BTHING_TYPE_ACTUATOR)) {
@@ -316,11 +283,6 @@ static void mg_bthing_mqtt_on_shadow_state_cmd(struct mg_connection *nc, const c
 */
 static void mg_bthing_mqtt_on_state_cmd1(struct mg_connection *nc, const char *topic,
                                          int topic_len, const char *msg, int msg_len, void *ud) {
-  int seg_len;
-  const char *seg_val;
-  mgos_bthing_t thing;
-  struct mg_bthing_mqtt_item *item;
-
   // s_tmpbuf1 = ${bthing_id} or ${bthing_dom}
   if (!mg_bthing_path_get_segment(topic, topic_len, '/', 2, &seg_val, &seg_len))
     return; // missing topic segment #2
@@ -328,24 +290,20 @@ static void mg_bthing_mqtt_on_state_cmd1(struct mg_connection *nc, const char *t
   s_tmpbuf1[seg_len] = '\0';
 
   // seg_val = verb (get or set)
+  int seg_len;
+  const char *seg_val;
   if (!mg_bthing_path_get_segment(topic, topic_len, '/', 4, &seg_val, &seg_len))
     return; // missing topic segment #4
 
   /* MANAGE /state/get topics */
   if (strncmp(seg_val, MGOS_BTHING_MQTT_VERB_GET, seg_len) == 0) {
-    item = mg_bthing_mqtt_get_item(mgos_bthing_get_by_id(s_tmpbuf1, NULL));
+    struct mg_bthing_mqtt_item *item = mg_bthing_mqtt_get_item(mgos_bthing_get_by_id(s_tmpbuf1, NULL));
     if (item && item->enabled) {
       // update one single thing ${bthing_id}
       mgos_bthing_update_state(item->thing);
     } else if (!item) {
       // update all things in domain ${bthing_dom}
-      mgos_bthing_enum_t things = mgos_bthing_get_all();
-      while (mgos_bthing_filter_get_next(&things, &thing, MGOS_BTHING_FILTER_BY_DOMAIN, s_tmpbuf1)) {
-        item = mg_bthing_mqtt_get_item(thing);
-        if (item && item->enabled) {
-          mgos_bthing_update_state(item->thing);
-        }
-      }
+      mgos_bthing_update_states(MGOS_BTHING_FILTER_BY_DOMAIN, s_tmpbuf1);
     }
   }
   
@@ -367,10 +325,6 @@ static void mg_bthing_mqtt_on_state_cmd1(struct mg_connection *nc, const char *t
 */
 static void mg_bthing_mqtt_on_state_cmd2(struct mg_connection *nc, const char *topic,
                                          int topic_len, const char *msg, int msg_len, void *ud) {
-  int seg_len;
-  const char *seg_val;
-  struct mg_bthing_mqtt_item *item;
-
   // s_tmpbuf1 = ${bthing_dom}
   if (!mg_bthing_path_get_segment(topic, topic_len, '/', 2, &seg_val, &seg_len))
     return; // missing topic segment #2
@@ -384,12 +338,14 @@ static void mg_bthing_mqtt_on_state_cmd2(struct mg_connection *nc, const char *t
   s_tmpbuf2[seg_len] = '\0';
 
   // seg_val = verb (get or set)
+  int seg_len;
+  const char *seg_val
   if (!mg_bthing_path_get_segment(topic, topic_len, '/', 5, &seg_val, &seg_len))
     return; // missing topic segment #5
 
   /* MANAGE /state/get topic */
   if (strncmp(seg_val, MGOS_BTHING_MQTT_VERB_GET, seg_len) == 0) {
-    item = mg_bthing_mqtt_get_item(mgos_bthing_get_by_id(s_tmpbuf1, s_tmpbuf2));
+    struct mg_bthing_mqtt_item *item = mg_bthing_mqtt_get_item(mgos_bthing_get_by_id(s_tmpbuf1, s_tmpbuf2));
     if (item && item->enabled) {
       // update one single thing ${bthing_dom}/${bthing_id}
       mgos_bthing_update_state(item->thing);
@@ -456,12 +412,6 @@ bool mg_bthing_mqtt_init_topics() {
     mgos_sys_config_set_bthing_mqtt_set_state_topic(topic);
     free(topic);
   }
-
-  // initialize 'get_state' topic as <device> topic (discard any $bthing_id placeholders)
-  s_mqtt_topics.get_state = NULL;
-  mg_bthing_sreplaces(mgos_sys_config_get_bthing_mqtt_get_state_topic(), &s_mqtt_topics.get_state,
-    2, MGOS_BTHING_ENV_THINGID, "", "//", "/");
-  if (!s_mqtt_topics.get_state) s_mqtt_topics.get_state = (char *)mgos_sys_config_get_bthing_mqtt_get_state_topic();
 
   // initialize 'broadcast_cmd' topic (discard any $device_id placeholders)
   s_mqtt_topics.broadcast_cmd = NULL;

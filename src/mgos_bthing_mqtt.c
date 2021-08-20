@@ -68,7 +68,7 @@ static void mg_bthing_mqtt_pub_ping_response() {
   mgos_bthing_update_states(MGOS_BTHING_FILTER_BY_NOTHING);
 }
 
-static bool mg_bthing_mqtt_update_item_state(const char* id_or_domain, conts char *domain) {
+static bool mg_bthing_mqtt_update_item_state(const char* id_or_domain, const char *domain) {
   mgos_bthing_t thing = (domain ? mgos_bthing_get_by_id(id_or_domain, domain) : mgos_bthing_get_by_id(id_or_domain, NULL));
   struct mg_bthing_mqtt_item *item = mg_bthing_mqtt_get_item(thing);
   if (item && !item->enabled) return false;
@@ -85,7 +85,7 @@ static bool mg_bthing_mqtt_update_item_state(const char* id_or_domain, conts cha
 
 #if MGOS_BTHING_HAVE_ACTUATORS
 
-static bool mg_bthing_mqtt_set_item_state(const char* id_or_domain, conts char *domain, const char* state, int state_len) {
+static bool mg_bthing_mqtt_set_item_state(const char* id_or_domain, const char *domain, const char* state, int state_len) {
   if (state == NULL || state_len <= 0) return false; 
 
   mgos_bthing_t thing = (domain ? mgos_bthing_get_by_id(id_or_domain, domain) : mgos_bthing_get_by_id(id_or_domain, NULL));

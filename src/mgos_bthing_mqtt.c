@@ -283,6 +283,9 @@ static void mg_bthing_mqtt_on_shadow_state_cmd(struct mg_connection *nc, const c
 */
 static void mg_bthing_mqtt_on_state_cmd1(struct mg_connection *nc, const char *topic,
                                          int topic_len, const char *msg, int msg_len, void *ud) {
+  int seg_len;
+  const char *seg_val
+
   // s_tmpbuf1 = ${bthing_id} or ${bthing_dom}
   if (!mg_bthing_path_get_segment(topic, topic_len, '/', 2, &seg_val, &seg_len))
     return; // missing topic segment #2
@@ -290,8 +293,6 @@ static void mg_bthing_mqtt_on_state_cmd1(struct mg_connection *nc, const char *t
   s_tmpbuf1[seg_len] = '\0';
 
   // seg_val = verb (get or set)
-  int seg_len;
-  const char *seg_val;
   if (!mg_bthing_path_get_segment(topic, topic_len, '/', 4, &seg_val, &seg_len))
     return; // missing topic segment #4
 
@@ -325,6 +326,9 @@ static void mg_bthing_mqtt_on_state_cmd1(struct mg_connection *nc, const char *t
 */
 static void mg_bthing_mqtt_on_state_cmd2(struct mg_connection *nc, const char *topic,
                                          int topic_len, const char *msg, int msg_len, void *ud) {
+  int seg_len;
+  const char *seg_val
+
   // s_tmpbuf1 = ${bthing_dom}
   if (!mg_bthing_path_get_segment(topic, topic_len, '/', 2, &seg_val, &seg_len))
     return; // missing topic segment #2
@@ -338,8 +342,6 @@ static void mg_bthing_mqtt_on_state_cmd2(struct mg_connection *nc, const char *t
   s_tmpbuf2[seg_len] = '\0';
 
   // seg_val = verb (get or set)
-  int seg_len;
-  const char *seg_val
   if (!mg_bthing_path_get_segment(topic, topic_len, '/', 5, &seg_val, &seg_len))
     return; // missing topic segment #5
 

@@ -388,7 +388,7 @@ static void mg_bthing_mqtt_on_state_cmd2(struct mg_connection *nc, const char *t
 
   /* MANAGE /state/get topic */
   if (strncmp(seg_val, MGOS_BTHING_MQTT_VERB_GET, seg_len) == 0) {
-    mg_bthing_mqtt_update_item_state(s_tmpbuf2, s_tmpbuf1));
+    mg_bthing_mqtt_update_item_state(s_tmpbuf2, s_tmpbuf1);
     return; // DONE
   }
   

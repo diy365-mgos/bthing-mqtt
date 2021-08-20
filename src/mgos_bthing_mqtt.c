@@ -284,7 +284,7 @@ static void mg_bthing_mqtt_on_shadow_state_cmd(struct mg_connection *nc, const c
 static void mg_bthing_mqtt_on_state_cmd1(struct mg_connection *nc, const char *topic,
                                          int topic_len, const char *msg, int msg_len, void *ud) {
   int seg_len;
-  const char *seg_val
+  const char *seg_val;
 
   // s_tmpbuf1 = ${bthing_id} or ${bthing_dom}
   if (!mg_bthing_path_get_segment(topic, topic_len, '/', 2, &seg_val, &seg_len))
@@ -327,7 +327,7 @@ static void mg_bthing_mqtt_on_state_cmd1(struct mg_connection *nc, const char *t
 static void mg_bthing_mqtt_on_state_cmd2(struct mg_connection *nc, const char *topic,
                                          int topic_len, const char *msg, int msg_len, void *ud) {
   int seg_len;
-  const char *seg_val
+  const char *seg_val;
 
   // s_tmpbuf1 = ${bthing_dom}
   if (!mg_bthing_path_get_segment(topic, topic_len, '/', 2, &seg_val, &seg_len))

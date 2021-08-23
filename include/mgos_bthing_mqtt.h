@@ -30,6 +30,7 @@
   - ${topic_dom}/${device_id}/state/updated                             PUB   Publish the shadow state
   
   STANDARD-MODE TOPICS
+  - ${topic_dom}/${device_id}/state/get                                 SUB   Recieve get-state command for all bThings
   - ${topic_dom}/${device_id}/+/+/state/+
       ${topic_dom}/${device_id}/${bthing_dom}/${bthing_id}/state/get    SUB   Recieve get-state command for a domain.bThing
       ${topic_dom}/${device_id}/${bthing_dom}/${bthing_id}/state/set    SUB   Recieve set-state command for a domain.bThing

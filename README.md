@@ -22,7 +22,7 @@ $bthings/cmd
 Publish one of the following commands to this topic for executing it on all network devices.
 |Command||
 |--|--|
-|ping|Ping the device. The device responds by publishing the birth message to {topic_dom}/{device_id}/LWT and by publishing its state to state/updated ({topic_dom}/{device_id}/{bthing_dom}/{bthing_id}/state/updated or {topic_dom}/{device_id}/{bthing_id}/state/updated in standard mode and {topic_dom}/{device_id}/state/updated in shadow mode).|
+|ping|Ping the device. The device responds by publishing the birth message to [{topic_dom}/{device_id}/LWT](#topic_domdevice_idlwt) and by publishing its state to state/updated ({topic_dom}/{device_id}/{bthing_dom}/{bthing_id}/state/updated or {topic_dom}/{device_id}/{bthing_id}/state/updated in standard mode and {topic_dom}/{device_id}/state/updated in shadow mode).|
 #### {topic_dom}/{device_id}/cmd
 ```
 $bthings/{device_id}/cmd
@@ -35,8 +35,27 @@ Publish one of the following commands to this topic for executing it on *{device
 ```
 $bthings/{device_id}/LWT
 ```
-A device publishes the the birth message to this topic.
+A device publishes the birth message to this topic.
 ### Standard mode MQTT topics
+A bThing can be in-domain or domain-less. The topics used by each differ only in the topic prefix. This table shows the topic prefix used by each bThing type.
+|bThingTopicPrefix value|bThingsTopicPrefix value|bThing type|
+|--|--|--|
+|{topic_dom}/{device_id}/{bthing_dom}/{bthing_id}|{topic_dom}/{device_id}/{bthing_dom}|In-domain bThing|
+|{topic_dom}/{device_id}/{bthing_id}|-|Domain-less bThing|
+#### /state/updated
+```
+bThingTopicPrefix/state/updated 
+```
+#### /state/set
+```
+bThingTopicPrefix/state/set
+bThingsTopicPrefix/state/set
+```
+#### /state/get
+```
+bThingTopicPrefix/state/get
+bThingsTopicPrefix/state/get
+```
 ### Shadow mode MQTT topics
 ## Configuration
 The library adds the `bthing.mqtt` section to the device configuration:

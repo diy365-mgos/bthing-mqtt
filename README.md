@@ -5,44 +5,56 @@ Mongoose-OS library that allows you allows you to easily enable MQTT over [bThin
 - **Zero-Conf** - Just including the library all registered bThings will be automatically exposed via MQTT protocol.
 - **Shadow state support** - Just add the [bThings Shadow library](https://github.com/diy365-mgos/bthing-shadow) to enable the Shadow mode.
 ## Supported modes
-Two different modes are supported: Standard and Shadow.
+The library supports two modes:
+- Standard mode
+- Shadow mode
 ### Standard mode
-This is the default mode. In Standard mode, the state of a bThing is published to a dedicated MQTT topic, and it can be set singularly and independently from the others. Following topics are available for every registered and enabled bThing:
-|Verb|Default topic||
-|--|--|--|
-|**state/updated**|`bthings/${device_id}/${bthing_id}/state/updated`|Subscribe to this topic for receiving state updates of a bThing.|
-|**state/set**|`bthings/${device_id}/${bthing_id}/state/set`|Send a payload to this topic for setting the state of a [bActuator](https://github.com/diy365-mgos/bactuator).| 
-|**state/get**|`bthings/${device_id}/${bthing_id}/state/get`|Send an empty payload to this topic for getting a bThing state. As soon as this command is received, the bThing will publish a message to its *state/updated* topic.|
-
-In addition, following topics are available for all registered and enabled bThings:
-|Verb|Default topic||
-|--|--|--|
-|**state/get**|`bthings/${device_id}/state/get`|Send an empty payload to this topic for getting bThing states. As soon as this command is received, all bThings will publish singularly a message to their *state/updated* topics.|
-
+This is the default mode. In Standard mode, the state of a bThing is published to a dedicated MQTT topic, and it can be set singularly and independently from the others.
 ### Shadow mode
-To enable Shadow mode just include the [bThings Shadow library](https://github.com/diy365-mgos/bthing-shadow) in your `mos.yaml` file. In Shadow mode, only one signle shadow state containing the state of all registered and enabled bThings is published, and many bThing states can be set simultaneously, in one shot. Following topics are available for all registered and enabled bThings:
-|Verb|Default topic||
-|--|--|--|
-|**state/updated**|`bthings/${device_id}/state/updated`|Subscribe to this topic for receiving shadow updates. If the configuration setting `"pub_delta_shadow":true` a partial (delta) shadow instead of a full shadow is published. 
-|**state/set**|`bthings/${device_id}/state/set`|Send a JSON payload to this topic for setting one or more [bActuator](https://github.com/diy365-mgos/bactuator) states simultaneously.| 
-|**state/get**|`bthings/${device_id}/state/get`|Send an empty payload to this topic for getting the shadow state. As soon as this command is received, a full shadow state is published to *state/updated* topic.|
+To enable Shadow mode just include the [bThings Shadow library](https://github.com/diy365-mgos/bthing-shadow) in your `mos.yaml` file. In Shadow mode only one signle shadow state containing the state of all registered and enabled bThings is published, and many bThing states can be set simultaneously, in one shot.
+## bThing MQTT topics
+### Common MQTT topics
+A bThing uses common topics regardless of the enabled mode.
+#### {topic_dom}/cmd
+```
+$bthings/cmd
+```
+Publish one of the following commands to this topic for executing it on all network devices.
+|Command||
+|--|--|
+|ping|Ping the device. The device responds by publishing the birth message to {topic_dom}/{device_id}/LWT and by publishing its state to state/updated ({topic_dom}/{device_id}/{bthing_dom}/{bthing_id}/state/updated or {topic_dom}/{device_id}/{bthing_id}/state/updated in standard mode and {topic_dom}/{device_id}/state/updated in shadow mode).|
+#### {topic_dom}/{device_id}/cmd
+```
+$bthings/{device_id}/cmd
+```
+Publish one of the following commands to this topic for executing it on *{device_id}* device.
+|Command||
+|--|--|
+|ping|Ping the device. The device responds by publishing the birth message to {topic_dom}/{device_id}/LWT and by publishing its state to state/updated ({topic_dom}/{device_id}/{bthing_dom}/{bthing_id}/state/updated or {topic_dom}/{device_id}/{bthing_id}/state/updated in standard mode and {topic_dom}/{device_id}/state/updated in shadow mode).|
+#### {topic_dom}/{device_id}/LWT
+```
+$bthings/{device_id}/LWT
+```
+A device publishes the the birth message to this topic.
+### Standard mode MQTT topics
+### Shadow mode MQTT topics
 ## Configuration
 The library adds the `bthing.mqtt` section to the device configuration:
 ```javascript
 {
-  "birth_message": "online",                                                  // Default MQTT birth message
-  "qos": 0,                                                                   // Default MQTT QOS value for publishing messages
-  "retain": false,                                                            // Default MQTT retain value for publishing messages
-  "cmd_topic": "$bthings/${device_id}/cmd"                                    // The the topic for sending commands to the device
-  "state_updated_topic": "$bthings/${device_id}/${bthing_id}/state/updated",  // The the topic for publishing state updates
-  "set_state_topic": "$bthings/${device_id}/${bthing_id}/state/set",          // The the topic for receiving set-state messages
-  "get_state_topic": "$bthings/${device_id}/${bthing_id}/state/get",          // The the topic for getting the state
+  "birth_message": "online",  // Default MQTT birth message
+  "qos": 0,                   // Default MQTT QOS value for publishing messages
+  "retain": false,            // Default MQTT retain value for publishing messages
+  "topic_dom": "$bthings"     // Default domain name to use as prefix in topic's path"
 }
 ```
 The library sets these `mqtt` section settings as well:
 ```javascript
-  "will_topic": "$bthings/${device_id}/LWT",
-  "will_message": "offline",
+  "enable": false,
+  "server": "",
+  "ssl_ca_cert": "ca.pem",
+  "will_topic": "{topic_dom}/{device_id}/LWT",
+  "will_message": "offline"
 ```
 In addition, following settings are available when the [bThings Shadow library](https://github.com/diy365-mgos/bthing-shadow) is included:
 ```javascript
@@ -55,7 +67,7 @@ In addition, following settings are available when the [bThings Shadow library](
 ```c
 bool mgos_bthing_mqtt_disable(mgos_bthing_t thing);
 ```
-Disables MQTT messages for a bThing. Returns `true` on success, or `false` otherwise. If Shadow mode is enabled, the function [mgos_bthing_shadow_disable()](https://github.com/diy365-mgos/bthing-shadow#mgos_bthing_shadow_disable) is also invoked automatically.
+Disables MQTT messages for a bThing. Returns `true` on success, or `false` otherwise. If Shadow mode is enabled, the function [mgos_bthing_shadow_disable()](https://github.com/diy365-mgos/bthing-shadow#mgos_bthing_shadow_disable) is automatically invoked behind the scenes.
 
 |Parameter||
 |--|--| 

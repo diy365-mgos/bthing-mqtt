@@ -15,26 +15,27 @@ To enable Shadow mode just include the [bThings Shadow library](https://github.c
 ## bThing MQTT topics
 ### Common MQTT topics
 A bThing uses common topics regardless of the enabled mode.
-#### /cmd
-```
-{topic_dom}/cmd
-```
+#### {topic_dom}/cmd
 Publish one of the following commands to this topic for executing it on all network devices.
+```
+$bthings/cmd
+```
 |Command||
 |--|--|
 |ping|Ping the device. The device responds by publishing the birth message to [{topic_dom}/{device_id}/LWT](#topic_domdevice_idlwt) and by publishing its state to state/updated in either [standard mode](#stateupdated) or shadow mode.|
-```
-{topic_dom}/{device_id}/cmd
-```
+#### {topic_dom}/{device_id}/cmd
 Publish one of the following commands to this topic for executing it on *{device_id}* device.
+```
+$bthings/{device_id}/cmd
+```
 |Command||
 |--|--|
 |ping|Ping the device. The device responds by publishing the birth message to [{topic_dom}/{device_id}/LWT](#topic_domdevice_idlwt) and by publishing its state to state/updated in either [standard mode](#stateupdated) or shadow mode.|
 #### {topic_dom}/{device_id}/LWT
+A device publishes the birth message to this topic.
 ```
 $bthings/{device_id}/LWT
 ```
-A device publishes the birth message to this topic.
 ### Standard mode MQTT topics
 A bThing can be in-domain or domain-less. The topics used by each differ only in the topic prefix. This table shows the topic prefix used by each bThing type.
 |bThingTopicPrefix value|bThingsTopicPrefix value|bThing type|

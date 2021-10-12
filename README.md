@@ -15,47 +15,46 @@ To enable Shadow mode just include the [bThings Shadow library](https://github.c
 ## bThing MQTT topics
 ### Common MQTT topics
 A bThing uses common topics regardless of the enabled mode.
-#### {topic_dom}/cmd
+#### {topic_domain}/cmd
 Publish one of the following commands to this topic for executing it on all network devices.
 ```
 $bthings/cmd
 ```
 |Command||
 |--|--|
-|ping|Ping the device. The device responds by publishing the birth message to [{topic_dom}/{device_id}/LWT](#topic_domdevice_idlwt) and by publishing its state to state/updated in either [standard mode](#stateupdated) or shadow mode.|
-#### {topic_dom}/{device_id}/cmd
+|ping|Ping the device. The device responds by publishing the birth message to [{topic_domain}/{device_id}/LWT](#topic_domdevice_idlwt) and by publishing its state to state/updated in either [standard mode](#stateupdated) or shadow mode.|
+#### {topic_domain}/{device_id}/cmd
 Publish one of the following commands to this topic for executing it on *{device_id}* device.
 ```
 $bthings/{device_id}/cmd
 ```
 |Command||
 |--|--|
-|ping|Ping the device. The device responds by publishing the birth message to [{topic_dom}/{device_id}/LWT](#topic_domdevice_idlwt) and by publishing its state to state/updated in either [standard mode](#stateupdated) or shadow mode.|
-#### {topic_dom}/{device_id}/LWT
+|ping|Ping the device. The device responds by publishing the birth message to [{topic_domain}/{device_id}/LWT](#topic_domdevice_idlwt) and by publishing its state to state/updated in either [standard mode](#stateupdated) or shadow mode.|
+#### {topic_domain}/{device_id}/LWT
 A device publishes the birth message to this topic.
 ```
 $bthings/{device_id}/LWT
 ```
 ### Standard mode MQTT topics
 A bThing can be in-domain or domain-less. The topics used by each differ only in the topic prefix. This table shows the topic prefix used by each bThing type.
-|bThingTopicPrefix value|bThingsTopicPrefix value|bThing type|
-|--|--|--|
-|{topic_dom}/{device_id}/{bthing_dom}/{bthing_id}|{topic_dom}/{device_id}/{bthing_dom}|In-domain|
-|{topic_dom}/{device_id}/{bthing_id}|-|Domain-less|
-#### /state/updated
-```
-bThingTopicPrefix/state/updated 
-```
-#### /state/set
-```
-bThingTopicPrefix/state/set
-bThingsTopicPrefix/state/set
-```
-#### /state/get
-```
-bThingTopicPrefix/state/get
-bThingsTopicPrefix/state/get
-```
+|bThingTopicPrefix value|bThing type|
+|--|--|
+|{topic_domain}/{device_id}/{bthing_dom}/{bthing_id}|In-domain|
+|{topic_domain}/{device_id}/{bthing_id}|Domain-less|
+
+#### bThingTopicPrefix/state/updated
+
+#### bThingTopicPrefix/state/set
+
+#### {topic_domain}/{device_id}/{bthing_dom}/state/set
+
+#### bThingTopicPrefix/state/get
+
+#### {topic_domain}/{device_id}/{bthing_dom}/state/get
+
+#### {topic_domain}/{device_id}/state/get
+
 ### Shadow mode MQTT topics
 ## Configuration
 The library adds the `bthing.mqtt` section to the device configuration:
@@ -72,7 +71,7 @@ The library sets these `mqtt` section settings as well:
   "enable": false,
   "server": "",
   "ssl_ca_cert": "ca.pem",
-  "will_topic": "{topic_dom}/{device_id}/LWT",
+  "will_topic": "{topic_domain}/{device_id}/LWT",
   "will_message": "offline"
 ```
 In addition, following settings are available when the [bThings Shadow library](https://github.com/diy365-mgos/bthing-shadow) is included:

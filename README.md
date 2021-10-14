@@ -42,15 +42,17 @@ Publish a state payload to this topic to set the bThing's state.
 {topic_dom}/{device_id}/{bthing_dom}/{bthing_id}/state/set
 {topic_dom}/{device_id}/{bthing_id}/state/set
 ```
-Publish a state payload to this topic to set the state of all bThings in the `{bthing_dom}` domain, in one shot.
+Publish a state payload to this topic to set, in one shot, the state of all bThings in the `{bthing_dom}` domain.
 ```
 {topic_dom}/{device_id}/{bthing_dom}/state/set
 ```
+**Remarks**
 
+In case the requested state is not euqal to the current one, the bThings responds by publishing its new state to [/state/updated](#stateupdated).
 ### /state/get
 Publish an empty payload to this topic to get the bThing's state.
 ```
-<style "color"="ornage">{topic_dom}/{device_id}/{bthing_dom}/{bthing_id}</style>/state/get
+{topic_dom}/{device_id}/{bthing_dom}/{bthing_id}/state/get
 {topic_dom}/{device_id}/{bthing_id}/state/get
 ```
 Publish an empty payload to this topic to get the state of all bThings in the `{bthing_dom}` domain.

@@ -26,7 +26,7 @@ Publish a command to this topic to boradcast it to all devices in the local netw
 **Remarks**
 
 These are the commands can be sent to a device. Mind that not all commands support broadcast.
-|Command|Boradcast||
+|Command|Broadcastable||
 |--|--|--|
 |**ping**|Y|Ping the device. The device responds by publishing a birth message to [/LWT](#lwt) topic and by publishing its state to **/state/updated** topic, in either [standard mode](#stateupdated) or shadow mode.|
 ### /LWT

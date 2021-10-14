@@ -22,9 +22,9 @@ Publish a command to this topic to boradcast it to all devices in the local netw
 ```
 |Command|Boradcast||
 |--|--|--|
-|ping|YES|Ping the device. The device responds by publishing the birth message to [{topic_domain}/{device_id}/LWT](#topic_domdevice_idlwt) and by publishing its state to state/updated in either [standard mode](#stateupdated) or shadow mode.|
+|ping|YES|Ping the device. The device responds by publishing the birth message to [/LWT](#lwt) topic and by publishing its state to **state/updated** topic, in either [standard mode](#stateupdated) or shadow mode.|
 ### /LWT
-A device publishes the birth message to this topic (see `birth_message` [configration](#configration]).
+A device publishes the birth message to this topic (see `birth_message` [configration](#configuration)).
 ```
 {topic_dom}/{device_id}/LWT
 ```

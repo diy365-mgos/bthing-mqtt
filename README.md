@@ -50,7 +50,7 @@ Publish a state payload to this topic to set the state of all bThings in the `{b
 ### /state/get
 Publish an empty payload to this topic to get the bThing's state.
 ```
-<font color="orange">{topic_dom}/{device_id}/{bthing_dom}/{bthing_id}</font>/state/get
+<span style="color:ornage">{topic_dom}/{device_id}/{bthing_dom}/{bthing_id}</span>/state/get
 {topic_dom}/{device_id}/{bthing_id}/state/get
 ```
 Publish an empty payload to this topic to get the state of all bThings in the `{bthing_dom}` domain.
@@ -62,8 +62,8 @@ Publish an empty payload to this topic to get the state of all device's bThings.
 {topic_dom}/{device_id}/state/get
 ```
 **Remarks**
-A bThings responds by publishing its state to [/state/updated](#stateupdated).
 
+A bThings responds by publishing its state to [/state/updated](#stateupdated).
 ## Shadow mode MQTT topics
 ## Configuration
 The library adds the `bthing.mqtt` section to the device configuration:

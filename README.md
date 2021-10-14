@@ -28,21 +28,21 @@ Publish a command to this topic to boradcast it to all devices in the local netw
 These are the commands can be sent to a device. Mind that not all commands support broadcast.
 |Command|Broadcastable||
 |--|--|--|
-|**ping**|Y|Ping the device. The device responds by publishing a birth message to [/LWT](#lwt) topic and by publishing its state to **/state/updated** topic, in either [standard mode](#stateupdated) or shadow mode.|
+|**ping**|Y|Ping the device. The device responds by publishing a birth message to [/LWT](#lwt) topic and by publishing its state to **/state/updated** topic, in either [standard mode](#standard_state_updated) or [shadow mode](#shadow_state_updated).|
 ### /LWT
 A device publishes a birth message to this topic (see `birth_message` [configration](#configuration)).
 ```
 {topic_dom}/{device_id}/LWT
 ```
 ## Standard mode MQTT topics
-In standard mode, each device uses dedicated MQTT topics.
-### /state/updated
+In standard mode, each bThing of a device has its own dedicated MQTT topics.
+### <a name="standard_state_updated"></a>/state/updated
 A bThing publishes its state to this topic.
 ```
 {topic_dom}/{device_id}/{bthing_dom}/{bthing_id}/state/updated
 {topic_dom}/{device_id}/{bthing_id}/state/updated
 ```
-### /state/set
+### <a name="standard_state_set"></a>/state/set
 Publish a state payload to this topic to set the bThing's state.
 ```
 {topic_dom}/{device_id}/{bthing_dom}/{bthing_id}/state/set
@@ -54,8 +54,8 @@ Publish a state payload to this topic to set, in one shot, the state of all bThi
 ```
 **Remarks**
 
-In case the requested state is not euqal to the current one, a bThings responds by publishing its new state to [/state/updated](#stateupdated).
-### /state/get
+In case the requested state is not euqal to the current one, a bThings responds by publishing its new state to [/state/updated](#standard_state_updated) topic.
+### <a name="standard_state_get"></a>/state/get
 Publish an empty payload to this topic to get the bThing's state.
 ```
 {topic_dom}/{device_id}/{bthing_dom}/{bthing_id}/state/get
@@ -71,8 +71,30 @@ Publish an empty payload to this topic to get the state of all device's bThings.
 ```
 **Remarks**
 
-A bThing responds by publishing its state to [/state/updated](#stateupdated).
+A bThing responds by publishing its state to [/state/updated](#standard_state_updated).
 ## Shadow mode MQTT topics
+In shadow mode, one single shadow state document is used to set/get the state of all device's bThings.
+### <a name="shadow_state_updated"></a>/state/updated
+A device publishes its shadow state document to this topic.
+```
+{topic_dom}/{device_id}/state/updated
+```
+### <a name="shadow_state_set"></a>/state/set
+Publish a shadow state document to this topic to set the state of one or more bThings.
+```
+{topic_dom}/{device_id}/state/set
+```
+**Remarks**
+
+In case the requested shadow state document is not euqal to the current one, a device responds by publishing its new shadow state document to [/state/updated](#shadow_state_updated) topic.
+### <a name="shadow_state_get"></a>/state/get
+Publish an empty payload to this topic to get the shadow state document of the device.
+```
+{topic_dom}/{device_id}/state/get
+```
+**Remarks**
+
+A device responds by publishing its shadow state document to [/state/updated](#shadow_state_updated) topic.
 ## Configuration
 The library adds the `bthing.mqtt` section to the device configuration:
 ```javascript

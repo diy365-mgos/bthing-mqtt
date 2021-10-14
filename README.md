@@ -79,7 +79,7 @@ In shadow mode, one single shadow state document is used to set/get the state of
 {
   "light-1": "ON",
   "light-2": "OFF",
-  // "lights" domain
+  # "lights" domain
   "lights": {         
     "light-3": "ON",
     "light-4": "ON",

@@ -15,16 +15,19 @@ To enable Shadow mode just include the [bThings Shadow library](https://github.c
 ## Common MQTT topics
 A bThing uses common topics regardless of the enabled mode.
 ### /cmd
-Publish a command to this topic to boradcast it to all devices in the local network or to send it to the `{device_id}` device. Mind that not all commands support broadcast. Please check command details below.
+Publish a command to this topic to send it to the `{device_id}` device. Please check command list below.
+```
+{topic_dom}/{device_id}/cmd
+```
+Publish a command to this topic to boradcast it to all devices in the local network. Mind that not all commands support broadcast. Please check command list below.
 ```
 {topic_dom}/cmd
-{topic_dom}/{device_id}/cmd
 ```
 |Command|Boradcast||
 |--|--|--|
-|ping|YES|Ping the device. The device responds by publishing the birth message to [/LWT](#lwt) topic and by publishing its state to **state/updated** topic, in either [standard mode](#stateupdated) or shadow mode.|
+|ping|YES|Ping the device. The device responds by publishing a birth message to [/LWT](#lwt) topic and by publishing its state to **/state/updated** topic, in either [standard mode](#stateupdated) or shadow mode.|
 ### /LWT
-A device publishes the birth message to this topic (see `birth_message` [configration](#configuration)).
+A device publishes a birth message to this topic (see `birth_message` [configration](#configuration)).
 ```
 {topic_dom}/{device_id}/LWT
 ```

@@ -74,6 +74,17 @@ Publish an empty payload to this topic to get the state of all device's bThings.
 A bThing responds by publishing its state to [/state/updated](#standard_state_updated).
 ## Shadow mode MQTT topics
 In shadow mode, one single shadow state document is used to set/get the state of all device's bThings.
+### Shadow state document example
+```json
+{
+  "light-1": "ON",
+  "light-2": "OFF",
+  "lights": {         // bThings domain name
+    "light-3": "ON",
+    "light-4": "ON",
+  },
+}
+```
 ### <a name="shadow_state_updated"></a>/state/updated
 A device publishes its shadow state document to this topic.
 ```

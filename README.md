@@ -50,7 +50,7 @@ Publish a state payload to this topic to set the state of all bThings in the `{b
 ### /state/get
 Publish an empty payload to this topic to get the bThing's state.
 ```
-<span style="color:ornage">{topic_dom}/{device_id}/{bthing_dom}/{bthing_id}</span>/state/get
+<style "color"="ornage">{topic_dom}/{device_id}/{bthing_dom}/{bthing_id}</style>/state/get
 {topic_dom}/{device_id}/{bthing_id}/state/get
 ```
 Publish an empty payload to this topic to get the state of all bThings in the `{bthing_dom}` domain.
@@ -75,18 +75,20 @@ The library adds the `bthing.mqtt` section to the device configuration:
   "topic_dom": "$bthings"     // Default domain name to use as prefix in topic's path"
 }
 ```
+In addition, following settings are available in `bthing.mqtt` section when the [bThings Shadow library](https://github.com/diy365-mgos/bthing-shadow) is included:
+```javascript
+{
+  "pub_delta_shadow": false,    //Enable publishing delta shadow instead of the full one
+}
+```
 The library sets these `mqtt` section settings as well:
 ```javascript
+{
   "enable": false,
   "server": "",
   "ssl_ca_cert": "ca.pem",
   "will_topic": "{topic_domain}/{device_id}/LWT",
   "will_message": "offline"
-```
-In addition, following settings are available when the [bThings Shadow library](https://github.com/diy365-mgos/bthing-shadow) is included:
-```javascript
-{
-  "pub_delta_shadow": false,    //Enable publishing delta shadow instead of the full one
 }
 ```
 ## C/C++ API Reference

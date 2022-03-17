@@ -19,14 +19,11 @@ config_schema:
   - ["bthing.mqtt.retain", b, false, {title: "Default MQTT retain value for publishing messages"}]
   - ["bthing.mqtt.topic_dom", s, "$bthings", {title: "Default domain name to use as prefix in topic's path"}]
   
-  - ["mqtt.enable", false]
-  - ["mqtt.server", ""]
+  - ["mqtt.enable", true]
   - ["mqtt.will_message", "offline"]
-  - ["mqtt.ssl_ca_cert", "ca.pem"]
 
 libs:
   - origin: https://github.com/mongoose-os-libs/mqtt
-  - origin: https://github.com/mongoose-os-libs/ca-bundle
   - origin: https://github.com/diy365-mgos/bthing
   - origin: https://github.com/diy365-mgos/bvar-json
 

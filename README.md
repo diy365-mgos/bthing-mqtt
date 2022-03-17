@@ -119,15 +119,13 @@ The library adds the `bthing.mqtt` section to the device configuration:
 In addition, following settings are available in `bthing.mqtt` section when the [bThings Shadow library](https://github.com/diy365-mgos/bthing-shadow) is included:
 ```javascript
 {
-  "pub_delta_shadow": false,    //Enable publishing delta shadow instead of the full one
+  "pub_delta_shadow": false    //Enable publishing delta shadow instead of the full one
 }
 ```
 The library sets these `mqtt` section settings as well:
 ```javascript
 {
-  "enable": false,
-  "server": "",
-  "ssl_ca_cert": "ca.pem",
+  "enable": true,
   "will_topic": "{topic_domain}/{device_id}/LWT",
   "will_message": "offline"
 }

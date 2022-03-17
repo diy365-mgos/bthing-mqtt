@@ -2,7 +2,7 @@
 ## Overview
 Mongoose-OS library that allows you allows you to easily enable MQTT over [bThings](https://github.com/diy365-mgos/bthing).
 ## Features
-- **Zero-Conf** - Just including the library all registered bThings will be automatically exposed via MQTT protocol. Mind that private bThings (see [mgos_bthing_make_private()](https://github.com/diy365-mgos/bthing#mgos_bthing_make_private) function) won't be exposed.
+- **Zero-Conf** - Just including the library all registered bThings will be automatically exposed via MQTT protocol. NOTE: private bThings (see [mgos_bthing_make_private()](https://github.com/diy365-mgos/bthing#mgos_bthing_make_private) function) won't be exposed.
 - **Shadow state support** - Just add the [bThings Shadow library](https://github.com/diy365-mgos/bthing-shadow) to enable the Shadow mode.
 ## Supported modes
 The library supports two modes:

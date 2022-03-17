@@ -25,7 +25,7 @@ bool mg_bthing_mqtt_use_shadow() {
   #endif
 }
 
-bool mgos_bthing_mqtt_disable(mgos_bthing_t thing) {
+/* bool mgos_bthing_mqtt_disable(mgos_bthing_t thing) {
   #ifdef MGOS_BTHING_HAVE_SHADOW
   if (mg_bthing_mqtt_use_shadow()) {
     return mgos_bthing_shadow_disable(thing);
@@ -37,16 +37,16 @@ bool mgos_bthing_mqtt_disable(mgos_bthing_t thing) {
     item->enabled = false;
   }
   return true;
-}
+} */
 
-void mg_bthing_mqtt_enable(mgos_bthing_t thing) {
+/* void mg_bthing_mqtt_enable(mgos_bthing_t thing) {
   if (!mg_bthing_mqtt_use_shadow()) {
     struct mg_bthing_mqtt_item *item = mg_bthing_mqtt_get_item(thing);
     if (item && !item->enabled) {
       item->enabled = true;
     }
   }
-}
+} */
 
 bool mg_bthing_mqtt_birth_message_pub() {  
   int msg_id = false;
@@ -71,7 +71,8 @@ static void mg_bthing_mqtt_pub_ping_response() {
 static bool mg_bthing_mqtt_update_item_state(const char* id_or_domain, const char *domain) {
   mgos_bthing_t thing = (domain ? mgos_bthing_get_by_id(id_or_domain, domain) : mgos_bthing_get_by_id(id_or_domain, NULL));
   struct mg_bthing_mqtt_item *item = mg_bthing_mqtt_get_item(thing);
-  if (item && !item->enabled) return false;
+  //if (item && !item->enabled) return false;
+  if (item && mgos_bthing_is_private(item->thing)) return false;
 
   if (item) {
     // update one single thing
@@ -90,7 +91,8 @@ static bool mg_bthing_mqtt_set_item_state(const char* id_or_domain, const char *
 
   mgos_bthing_t thing = (domain ? mgos_bthing_get_by_id(id_or_domain, domain) : mgos_bthing_get_by_id(id_or_domain, NULL));
   struct mg_bthing_mqtt_item *item = mg_bthing_mqtt_get_item(thing);
-  if (item && !item->enabled) return false;
+  //if (item && !item->enabled) return false;
+  if (item && mgos_bthing_is_private(item->thing)) return false;
 
   mgos_bvar_t var_state = NULL;
   if (!mgos_bvar_json_try_bscanf(state, state_len, &var_state)) {
@@ -142,7 +144,8 @@ void mg_bthing_mqtt_on_set_state(struct mg_connection *nc, const char *topic,
 
   if (!mg_bthing_mqtt_use_shadow()) {
     struct mg_bthing_mqtt_item *item = (struct mg_bthing_mqtt_item *)ud; 
-    if (item && item->enabled) {
+    //if (item && item->enabled) {
+    if (item && !mgos_bthing_is_private(item->thing)) {
       mgos_bvar_t state = NULL;
       if (!mgos_bvar_json_try_bscanf(msg, msg_len, &state)) {
         state = mgos_bvar_new_nstr(msg, msg_len);
@@ -178,7 +181,7 @@ static void mg_bthing_mqtt_on_created(int ev, void *ev_data, void *userdata) {
   LOG(LL_DEBUG, ("bThing '%s' is going to publish state here: %s",
     mgos_bthing_get_uid(thing), item->state_updated_topic));
 
-  mg_bthing_mqtt_enable(thing);
+  //mg_bthing_mqtt_enable(thing);
 }
 
 #if MGOS_BTHING_HAVE_SENSORS
@@ -216,7 +219,8 @@ static bool mg_bthing_mqtt_try_pub_state(void *state_data) {
 
   if (!mg_bthing_mqtt_use_shadow()) {
     struct mg_bthing_mqtt_item *item = mg_bthing_mqtt_get_item(((struct mgos_bthing_state *)state_data)->thing);
-    if (item && item->enabled) {
+    //if (item && item->enabled) {
+    if (item && !mgos_bthing_is_private(item->thing)) {
       if (!mg_bthing_mqtt_pub_state(item->state_updated_topic, ((struct mgos_bthing_state *)state_data)->state)) {
         LOG(LL_ERROR, ("Error publishing '%s' state.", mgos_bthing_get_uid(((struct mgos_bthing_state *)state_data)->thing)));
         return false;

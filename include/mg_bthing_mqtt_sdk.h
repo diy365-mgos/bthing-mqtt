@@ -29,7 +29,7 @@ extern "C" {
 #endif
 
 struct mg_bthing_mqtt_item {
-  bool enabled;
+  //bool enabled;
   mgos_bthing_t thing;
   char *state_updated_topic;
   struct mg_bthing_mqtt_item *next;

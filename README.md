@@ -73,39 +73,56 @@ $bthings/{device_id}/state/get
 
 A bThing responds by publishing its state to [/state/updated](#standard_state_updated).
 ## Shadow mode MQTT topics
-In shadow mode, one single [shadow state document](#shadow-state-document-example) is used to set/get the state of all device's bThings.
-### Shadow state document example
+In shadow mode, one single [shadow state document](#shadow-state-document) is used to set/get the state of all device's bThings.
+#### Shadow state document
+The Shadow state document is a JSON document used for setting and getting device's bThings states.
+
+The first-level node can be a bThing ID or a bThing domain name as per following schema. The `<state_value>` can be any of the [bVariant data types](https://github.com/diy365-mgos/bvar#supported-data-types).
 ```json
 {
-  "light-1": "ON",
-  "light-2": "OFF",
+  "bthing_id": <state_value>,
+  ...,
+  "bthing_domain": {         
+    "bthing_id": <state_value>,
+    ...,
+  },
+}
+```
+The example below shows the sahdow state document of a device that hosts 4 bThings: a [bSwitch](https://github.com/diy365-mgos/bswitch) (ID `'switch_01'`), a [bFlowSensor](https://github.com/diy365-mgos/bflowsensor) (ID `'flow_01'`) and two [bSwitches](https://github.com/diy365-mgos/bswitch) (ID `'switch_02'` and `'switch_03'`) in the `'lights'` domain.
+```json
+{
+  "switch_01": "ON",
+  "flow_01": {
+    "flowRate": 0.56,
+    "totalFlow": 1.66
+  },
   "lights": {         
-    "light-3": "ON",
-    "light-4": "ON",
+    "switch_02": "ON",
+    "switch_03": "ON",
   },
 }
 ```
 ### <a name="shadow_state_updated"></a>/state/updated
-A device publishes its [shadow state document](#shadow-state-document-example) to this topic.
+A device publishes its [shadow state document](#shadow-state-document) to this topic.
 ```
 $bthings/{device_id}/state/updated
 ```
 ### <a name="shadow_state_set"></a>/state/set
-Publish a [shadow state document](#shadow-state-document-example) to this topic to set the state of one or more bThings.
+Publish a [shadow state document](#shadow-state-document) to this topic to set the state of one or more bThings.
 ```
 $bthings/{device_id}/state/set
 ```
 **Remarks**
 
-In case the requested [shadow state document](#shadow-state-document-example) is not euqal to the current one, a device responds by publishing its new [shadow state document](#shadow-state-document-example) to [/state/updated](#shadow_state_updated) topic.
+In case the requested [shadow state document](#shadow-state-document) is not euqal to the current one, a device responds by publishing its new [shadow state document](#shadow-state-document) to [/state/updated](#shadow_state_updated) topic.
 ### <a name="shadow_state_get"></a>/state/get
-Publish an empty payload to this topic to get the [shadow state document](#shadow-state-document-example) of the device.
+Publish an empty payload to this topic to get the [shadow state document](#shadow-state-document) of the device.
 ```
 $bthings/{device_id}/state/get
 ```
 **Remarks**
 
-A device responds by publishing its [shadow state document](#shadow-state-document-example) to [/state/updated](#shadow_state_updated) topic.
+A device responds by publishing its [shadow state document](#shadow-state-document) to [/state/updated](#shadow_state_updated) topic.
 ## Configuration
 The library adds the `bthing.mqtt` section to the device configuration:
 ```javascript
@@ -113,7 +130,7 @@ The library adds the `bthing.mqtt` section to the device configuration:
   "birth_message": "online",  // Default MQTT birth message
   "qos": 0,                   // Default MQTT QOS value for publishing messages
   "retain": false,            // Default MQTT retain value for publishing messages
-  "topic_prefix": "$bthings"  // Default MQTT topic prefix (e.g.: $bthings/{device_id}/...)
+  "topic_prefix": "$bthings"  // Default MQTT topic prefix (e.g.: {topic_prefix}/{device_id}/...)
 }
 ```
 In addition, following settings are available in `bthing.mqtt` section when the [bThings Shadow library](https://github.com/diy365-mgos/bthing-shadow) is included:
@@ -126,7 +143,7 @@ The library sets these `mqtt` section settings as well:
 ```javascript
 {
   "enable": true,
-  "will_topic": "$bthings/{device_id}/LWT",
+  "will_topic": "{topic_prefix}/{device_id}/LWT",
   "will_message": "offline"
 }
 ```

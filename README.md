@@ -78,7 +78,7 @@ In shadow mode, one single [shadow state document](#shadow-state-document) is us
 The Shadow state document is a JSON document used for setting and getting device's bThings states.
 
 The first-level node can be a bThing ID or a bThing domain name as per following schema. The `<state_value>` can be any of the [bVariant data types](https://github.com/diy365-mgos/bvar#supported-data-types).
-```json
+```
 {
   "bthing_id": <state_value>,
   ...,

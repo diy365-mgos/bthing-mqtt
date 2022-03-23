@@ -17,11 +17,11 @@ A bThing uses common topics regardless of the enabled mode.
 ### /cmd
 Publish a command to this topic to send it to the `{device_id}` device.
 ```
-{topic_prefix}/{device_id}/cmd
+$bthings/{device_id}/cmd
 ```
 Publish a command to this topic to boradcast it to all devices in the local network.
 ```
-{topic_prefix}/cmd
+$bthings/cmd
 ```
 **Remarks**
 
@@ -32,25 +32,25 @@ These are the commands can be sent to a device. Mind that not all commands suppo
 ### /LWT
 A device publishes a birth message to this topic (see `birth_message` [configration](#configuration)).
 ```
-{topic_prefix}/{device_id}/LWT
+$bthings/{device_id}/LWT
 ```
 ## Standard mode MQTT topics
 In standard mode, each bThing of a device has its own dedicated MQTT topics.
 ### <a name="standard_state_updated"></a>/state/updated
 A bThing publishes its state to this topic.
 ```
-{topic_prefix}/{device_id}/{bthing_domain}/{bthing_id}/state/updated
-{topic_prefix}/{device_id}/{bthing_id}/state/updated
+$bthings/{device_id}/{bthing_domain}/{bthing_id}/state/updated
+$bthings/{device_id}/{bthing_id}/state/updated
 ```
 ### <a name="standard_state_set"></a>/state/set
 Publish a state payload to this topic to set the bThing's state.
 ```
-{topic_prefix}/{device_id}/{bthing_domain}/{bthing_id}/state/set
-{topic_prefix}/{device_id}/{bthing_id}/state/set
+$bthings/{device_id}/{bthing_domain}/{bthing_id}/state/set
+$bthings/{device_id}/{bthing_id}/state/set
 ```
 Publish a state payload to this topic to set, in one shot, the state of all bThings in the `{bthing_domain}` domain.
 ```
-{topic_prefix}/{device_id}/{bthing_domain}/state/set
+$bthings/{device_id}/{bthing_domain}/state/set
 ```
 **Remarks**
 
@@ -58,16 +58,16 @@ In case the requested state is not euqal to the current one, a bThings responds 
 ### <a name="standard_state_get"></a>/state/get
 Publish an empty payload to this topic to get the bThing's state.
 ```
-{topic_prefix}/{device_id}/{bthing_domain}/{bthing_id}/state/get
-{topic_prefix}/{device_id}/{bthing_id}/state/get
+$bthings/{device_id}/{bthing_domain}/{bthing_id}/state/get
+$bthings/{device_id}/{bthing_id}/state/get
 ```
 Publish an empty payload to this topic to get the state of all bThings in the `{bthing_domain}` domain.
 ```
-{topic_prefix}/{device_id}/{bthing_domain}/state/get
+$bthings/{device_id}/{bthing_domain}/state/get
 ```
 Publish an empty payload to this topic to get the state of all device's bThings.
 ```
-{topic_prefix}/{device_id}/state/get
+$bthings/{device_id}/state/get
 ```
 **Remarks**
 
@@ -88,12 +88,12 @@ In shadow mode, one single [shadow state document](#shadow-state-document-exampl
 ### <a name="shadow_state_updated"></a>/state/updated
 A device publishes its [shadow state document](#shadow-state-document-example) to this topic.
 ```
-{topic_prefix}/{device_id}/state/updated
+$bthings/{device_id}/state/updated
 ```
 ### <a name="shadow_state_set"></a>/state/set
 Publish a [shadow state document](#shadow-state-document-example) to this topic to set the state of one or more bThings.
 ```
-{topic_prefix}/{device_id}/state/set
+$bthings/{device_id}/state/set
 ```
 **Remarks**
 
@@ -101,7 +101,7 @@ In case the requested [shadow state document](#shadow-state-document-example) is
 ### <a name="shadow_state_get"></a>/state/get
 Publish an empty payload to this topic to get the [shadow state document](#shadow-state-document-example) of the device.
 ```
-{topic_prefix}/{device_id}/state/get
+$bthings/{device_id}/state/get
 ```
 **Remarks**
 
@@ -113,7 +113,7 @@ The library adds the `bthing.mqtt` section to the device configuration:
   "birth_message": "online",  // Default MQTT birth message
   "qos": 0,                   // Default MQTT QOS value for publishing messages
   "retain": false,            // Default MQTT retain value for publishing messages
-  "topic_prefix": "$bthings"  // Default MQTT topic's prefix
+  "topic_prefix": "$bthings"  // Default MQTT topic prefix (e.g.: $bthings/{device_id}/...)
 }
 ```
 In addition, following settings are available in `bthing.mqtt` section when the [bThings Shadow library](https://github.com/diy365-mgos/bthing-shadow) is included:
@@ -126,7 +126,7 @@ The library sets these `mqtt` section settings as well:
 ```javascript
 {
   "enable": true,
-  "will_topic": "{topic_prefix}/{device_id}/LWT",
+  "will_topic": "$bthings/{device_id}/LWT",
   "will_message": "offline"
 }
 ```

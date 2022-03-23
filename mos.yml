@@ -17,7 +17,7 @@ config_schema:
   - ["bthing.mqtt.birth_message", "s", "online", {title: "Default MQTT birth message"}]
   - ["bthing.mqtt.qos", i, 0, {title: "Default MQTT QOS value for publishing messages"}]
   - ["bthing.mqtt.retain", b, false, {title: "Default MQTT retain value for publishing messages"}]
-  - ["bthing.mqtt.topic_dom", s, "$bthings", {title: "Default domain name to use as prefix in topic's path"}]
+  - ["bthing.mqtt.topic_prefix", s, "$bthings", {title: "Default MQTT topic's prefix"}]
   
   - ["mqtt.enable", true]
   - ["mqtt.will_message", "offline"]

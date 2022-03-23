@@ -170,11 +170,11 @@ static void mg_bthing_mqtt_on_created(int ev, void *ev_data, void *userdata) {
   const char *domain = mgos_bthing_get_domain(thing);
   if (domain) {
     item->state_updated_topic = mgos_bthing_sjoin("/", 6,
-    mgos_sys_config_get_bthing_mqtt_topic_dom(), mgos_sys_config_get_device_id(),
+    mgos_sys_config_get_bthing_mqtt_topic_prefix(), mgos_sys_config_get_device_id(),
       domain, mgos_bthing_get_id(thing), "state", "updated");
   } else {
     item->state_updated_topic = mgos_bthing_sjoin("/", 5,
-    mgos_sys_config_get_bthing_mqtt_topic_dom(), mgos_sys_config_get_device_id(),
+    mgos_sys_config_get_bthing_mqtt_topic_prefix(), mgos_sys_config_get_device_id(),
       mgos_bthing_get_id(thing), "state", "updated");
   }
 
@@ -261,7 +261,7 @@ static void mg_bthing_mqtt_on_state_updated(int ev, void *ev_data, void *userdat
 #endif //MGOS_BTHING_HAVE_SENSORS
 
 /* 
-  Topic's handle for: ${topic_dom}/cmd 
+  Topic's handle for: ${topic_prefix}/cmd 
 */
 static void mg_bthing_mqtt_on_broadcast_cmd(struct mg_connection *nc, const char *topic,
                                          int topic_len, const char *msg, int msg_len, void *ud) {
@@ -276,7 +276,7 @@ static void mg_bthing_mqtt_on_broadcast_cmd(struct mg_connection *nc, const char
 }
 
 /* 
-  Topic's handle for: ${topic_dom}/${device_id}/cmd
+  Topic's handle for: ${topic_prefix}/${device_id}/cmd
 */
 static void mg_bthing_mqtt_on_cmd(struct mg_connection *nc, const char *topic,
                                   int topic_len, const char *msg, int msg_len, void *ud) {
@@ -293,9 +293,9 @@ static void mg_bthing_mqtt_on_cmd(struct mg_connection *nc, const char *topic,
 #ifdef MGOS_BTHING_HAVE_SHADOW
 
 /* 
-  Topic's handle for: ${topic_dom}/${device_id}/state/+
-    - ${topic_dom}/${device_id}/state/get
-    - ${topic_dom}/${device_id}/state/set  
+  Topic's handle for: ${topic_prefix}/${device_id}/state/+
+    - ${topic_prefix}/${device_id}/state/get
+    - ${topic_prefix}/${device_id}/state/set  
 */
 static void mg_bthing_mqtt_on_shadow_xet_state(struct mg_connection *nc, const char *topic,
                                                int topic_len, const char *msg, int msg_len, void *ud) {
@@ -328,7 +328,7 @@ static void mg_bthing_mqtt_on_shadow_xet_state(struct mg_connection *nc, const c
 #endif // MGOS_BTHING_HAVE_SHADOW
 
 /* 
-  Topic's handle for:  ${topic_dom}/${device_id}/state/get 
+  Topic's handle for:  ${topic_prefix}/${device_id}/state/get 
 */
 static void mg_bthing_mqtt_on_device_get_state(struct mg_connection *nc, const char *topic,
                                                int topic_len, const char *msg, int msg_len, void *ud) {
@@ -339,11 +339,11 @@ static void mg_bthing_mqtt_on_device_get_state(struct mg_connection *nc, const c
 }
 
 /* 
-  Topic's handle for: ${topic_dom}/${device_id}/+/state/+
-    - ${topic_dom}/${device_id}/${bthing_id}/state/get
-    - ${topic_dom}/${device_id}/${bthing_dom}/state/get
-    - ${topic_dom}/${device_id}/${bthing_id}/state/set
-    - ${topic_dom}/${device_id}/${bthing_dom}/state/set
+  Topic's handle for: ${topic_prefix}/${device_id}/+/state/+
+    - ${topic_prefix}/${device_id}/${bthing_id}/state/get
+    - ${topic_prefix}/${device_id}/${bthing_domain}/state/get
+    - ${topic_prefix}/${device_id}/${bthing_id}/state/set
+    - ${topic_prefix}/${device_id}/${bthing_domain}/state/set
 */
 static void mg_bthing_mqtt_on_xet_state1(struct mg_connection *nc, const char *topic,
                                          int topic_len, const char *msg, int msg_len, void *ud) {
@@ -351,7 +351,7 @@ static void mg_bthing_mqtt_on_xet_state1(struct mg_connection *nc, const char *t
   const char *seg_val;
   if (mg_bthing_mqtt_use_shadow()) return;
 
-  // s_tmpbuf1 = ${bthing_id} or ${bthing_dom}
+  // s_tmpbuf1 = ${bthing_id} or ${bthing_domain}
   if (!mg_bthing_path_get_segment(topic, topic_len, '/', 2, &seg_val, &seg_len))
     return; // missing topic segment #2
   strncpy(s_tmpbuf1, seg_val, seg_len);
@@ -379,16 +379,16 @@ static void mg_bthing_mqtt_on_xet_state1(struct mg_connection *nc, const char *t
 }
 
 /* 
-  Topic's handle for: ${topic_dom}/${device_id}/+/+/state/+
-    - ${topic_dom}/${device_id}/${bthing_dom}/${bthing_id}/state/get
-    - ${topic_dom}/${device_id}/${bthing_dom}/${bthing_id}/state/set
+  Topic's handle for: ${topic_prefix}/${device_id}/+/+/state/+
+    - ${topic_prefix}/${device_id}/${bthing_domain}/${bthing_id}/state/get
+    - ${topic_prefix}/${device_id}/${bthing_domain}/${bthing_id}/state/set
 */
 static void mg_bthing_mqtt_on_xet_state2(struct mg_connection *nc, const char *topic,
                                          int topic_len, const char *msg, int msg_len, void *ud) {
   int seg_len;
   const char *seg_val;
 
-  // s_tmpbuf1 = ${bthing_dom}
+  // s_tmpbuf1 = ${bthing_domain}
   if (!mg_bthing_path_get_segment(topic, topic_len, '/', 2, &seg_val, &seg_len))
     return; // missing topic segment #2
   strncpy(s_tmpbuf1, seg_val, seg_len);
@@ -425,18 +425,18 @@ bool mg_bthing_mqtt_init_topics() {
   char *topic = NULL;
   const char *cfg_upd = "Setting [%s] updated to %s";
   const char* device_id = mgos_sys_config_get_device_id();
-  const char *topic_dom = mgos_sys_config_get_bthing_mqtt_topic_dom();
+  const char *topic_prefix = mgos_sys_config_get_bthing_mqtt_topic_prefix();
 
   /* Set the will topic */
-  // ${topic_dom}/${device_id}/LWT
-  topic = mgos_bthing_sjoin("/", 3, topic_dom, device_id, "LWT");
+  // ${topic_prefix}/${device_id}/LWT
+  topic = mgos_bthing_sjoin("/", 3, topic_prefix, device_id, "LWT");
   LOG(LL_DEBUG, (cfg_upd, "mqtt.will_topic", topic));
   mgos_sys_config_set_mqtt_will_topic(topic);
   free(topic);
 
   #ifdef MGOS_BTHING_HAVE_SHADOW
   if (mg_bthing_mqtt_use_shadow()) {
-    s_state_updated_topic = mgos_bthing_sjoin("/", 4, topic_dom, device_id, "state", "updated");
+    s_state_updated_topic = mgos_bthing_sjoin("/", 4, topic_prefix, device_id, "state", "updated");
     LOG(LL_DEBUG, ("Shadow-state updates are going to be published here: %s", s_state_updated_topic));
   }
   #else
@@ -449,19 +449,19 @@ bool mg_bthing_mqtt_init_topics() {
 bool mg_bthing_mqtt_sub_topics() {
   char *topic = NULL;
   const char* device_id = mgos_sys_config_get_device_id();
-  const char *topic_dom = mgos_sys_config_get_bthing_mqtt_topic_dom();
-  if (!device_id || !topic_dom || strlen(topic_dom) == 0) return false;
+  const char *topic_prefix = mgos_sys_config_get_bthing_mqtt_topic_prefix();
+  if (!device_id || !topic_prefix || strlen(topic_prefix) == 0) return false;
 
   /* COMMON TOPICS */
 
-  // ${topic_dom}/cmd
-  topic = mgos_bthing_sjoin("/", 2, topic_dom, "cmd");
+  // ${topic_prefix}/cmd
+  topic = mgos_bthing_sjoin("/", 2, topic_prefix, "cmd");
   mgos_mqtt_sub(topic, mg_bthing_mqtt_on_broadcast_cmd, NULL);
   LOG(LL_DEBUG, ("Looking for broadcast commands here: %s", topic));
   // free(topic);
 
-  // ${topic_dom}/${device_id}/cmd
-  topic = mgos_bthing_sjoin("/", 3, topic_dom, device_id, "cmd");
+  // ${topic_prefix}/${device_id}/cmd
+  topic = mgos_bthing_sjoin("/", 3, topic_prefix, device_id, "cmd");
   mgos_mqtt_sub(topic, mg_bthing_mqtt_on_cmd, NULL);
   LOG(LL_DEBUG, ("Looking for commands here: %s", topic));
   // free(topic);
@@ -470,8 +470,8 @@ bool mg_bthing_mqtt_sub_topics() {
   if (mg_bthing_mqtt_use_shadow()) {
     /* SHADOW-MODE TOPICS */
 
-    // ${topic_dom}/${device_id}/state/+
-    topic = mgos_bthing_sjoin("/", 4, topic_dom, device_id, "state", "+");
+    // ${topic_prefix}/${device_id}/state/+
+    topic = mgos_bthing_sjoin("/", 4, topic_prefix, device_id, "state", "+");
     mgos_mqtt_sub(topic, mg_bthing_mqtt_on_shadow_xet_state, NULL);
     LOG(LL_DEBUG, ("Looking for shadow-state commands here: %s", topic));
     // free(topic);
@@ -481,20 +481,20 @@ bool mg_bthing_mqtt_sub_topics() {
   if (!mg_bthing_mqtt_use_shadow()) {
     /* STANDARD-MODE TOPICS */
 
-    // ${topic_dom}/${device_id}/state/get
-    topic = mgos_bthing_sjoin("/", 4, topic_dom, device_id, "state", "get");
+    // ${topic_prefix}/${device_id}/state/get
+    topic = mgos_bthing_sjoin("/", 4, topic_prefix, device_id, "state", "get");
     mgos_mqtt_sub(topic, mg_bthing_mqtt_on_device_get_state, NULL);
     LOG(LL_DEBUG, ("Looking for device get-state commands here: %s", topic));
     // free(topic);
 
-    // ${topic_dom}/${device_id}/+/+/state/+
-    topic = mgos_bthing_sjoin("/", 6, topic_dom, device_id, "+", "+", "state", "+");
+    // ${topic_prefix}/${device_id}/+/+/state/+
+    topic = mgos_bthing_sjoin("/", 6, topic_prefix, device_id, "+", "+", "state", "+");
     mgos_mqtt_sub(topic, mg_bthing_mqtt_on_xet_state2, NULL);
     LOG(LL_DEBUG, ("Looking for state commands here: %s", topic));
     // free(topic);
 
-    // ${topic_dom}/${device_id}/+/state/+
-    topic = mgos_bthing_sjoin("/", 5, topic_dom, device_id, "+", "state", "+");
+    // ${topic_prefix}/${device_id}/+/state/+
+    topic = mgos_bthing_sjoin("/", 5, topic_prefix, device_id, "+", "state", "+");
     mgos_mqtt_sub(topic, mg_bthing_mqtt_on_xet_state1, NULL);
     LOG(LL_DEBUG, ("Looking for state commands here: %s", topic));
     // free(topic);

@@ -88,7 +88,7 @@ The first-level node can be a bThing ID or a bThing domain name as per following
   },
 }
 ```
-Example - The example below shows the sahdow state document of a device that hosts 4 bThings: a [bSwitch](https://github.com/diy365-mgos/bswitch) (ID `'switch_01'`), a [bFlowSensor](https://github.com/diy365-mgos/bflowsensor) (ID `'flow_01'`) and two [bSwitches](https://github.com/diy365-mgos/bswitch) (ID `'switch_02'` and `'switch_03'`) in the `'lights'` domain.
+Example - The example below shows the sahdow state document of a device that hosts 4 bThings: a [bSwitch](https://github.com/diy365-mgos/bswitch) (ID `'switch_01'`), a [bFlowSensor](https://github.com/diy365-mgos/bflowsens) (ID `'flow_01'`) and two [bSwitches](https://github.com/diy365-mgos/bswitch) (ID `'switch_02'` and `'switch_03'`) in the `'lights'` domain.
 ```json
 {
   "switch_01": "ON",

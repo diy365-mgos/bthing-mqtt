@@ -13,7 +13,7 @@
 
 static struct mg_bthing_shadow_ctx {
   bool force_pub; 
-  char *state_updated_topic
+  char *state_updated_topic;
 } s_ctx;
 
 
@@ -96,7 +96,7 @@ static bool mg_bthing_mqtt_update_item_state(const char* id_or_domain, const cha
     mgos_bthing_update_states(MGOS_BTHING_FILTER_BY_DOMAIN, s_tmpbuf1);
   }
   s_ctx.force_pub = force_pub;
-  
+
   return false;
 }
 
@@ -228,7 +228,7 @@ static bool mg_bthing_mqtt_try_pub_state(void *state_data) {
     if (s_ctx.force_pub || !mgos_sys_config_get_bthing_mqtt_pub_delta_shadow()) {
       state = ((struct mgos_bthing_shadow_state *)state_data)->full_shadow;
     } else {
-      state = ((struct mgos_bthing_shadow_state *)state_data)->delta_shadow 
+      state = ((struct mgos_bthing_shadow_state *)state_data)->delta_shadow;
     }
     if (!mg_bthing_mqtt_pub_state(s_ctx.state_updated_topic, state)) {
       LOG(LL_ERROR, ("Error publishing '%s' shadow.", mgos_sys_config_get_device_id()));

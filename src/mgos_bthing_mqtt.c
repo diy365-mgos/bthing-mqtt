@@ -65,19 +65,11 @@ bool mg_bthing_mqtt_birth_message_pub() {
   return (msg_id > 0);
 }
 
-static void mg_bthing_mqtt_force_update_states() {
-  // force to update all bThing states
-  bool force_pub = s_ctx.force_pub;
-  s_ctx.force_pub = true;
-  mgos_bthing_update_states(MGOS_BTHING_FILTER_BY_NOTHING);
-  s_ctx.force_pub = force_pub;
-}
-
 static void mg_bthing_mqtt_pub_ping_response() {
   // publish availability (will message)
   mg_bthing_mqtt_birth_message_pub();
-  // force to update all bThing states
-  mg_bthing_mqtt_force_update_states();
+  // force to publish all bThing states
+  mgos_bthing_update_states(true, MGOS_BTHING_FILTER_BY_NOTHING);
 }
 
 static bool mg_bthing_mqtt_update_item_state(const char* id_or_domain, const char *domain) {
@@ -86,16 +78,13 @@ static bool mg_bthing_mqtt_update_item_state(const char* id_or_domain, const cha
   //if (item && !item->enabled) return false;
   if (item && mg_bthing_has_flag(item->thing, MG_BTHING_FLAG_ISPRIVATE)) return false;
 
-  bool force_pub = s_ctx.force_pub;
-  s_ctx.force_pub = true;
   if (item) {
-    // update one single thing
-    mgos_bthing_update_state(item->thing);
+    // update and publish thing's state
+    mgos_bthing_update_state(item->thing, true);
   } else {
-    // (try) update all things in the domain
-    mgos_bthing_update_states(MGOS_BTHING_FILTER_BY_DOMAIN, s_tmpbuf1);
+    // update and publish the state of all things in the domain
+    mgos_bthing_update_states(true, MGOS_BTHING_FILTER_BY_DOMAIN, s_tmpbuf1);
   }
-  s_ctx.force_pub = force_pub;
 
   return false;
 }
@@ -350,8 +339,8 @@ static void mg_bthing_mqtt_on_shadow_xet_state(struct mg_connection *nc, const c
 
   /* MENAGE /state/get topic */
   if (strncmp(seg_val, MGOS_BTHING_MQTT_VERB_GET, seg_len) == 0) {
-    // force to update all bThing states (and the shadow consequently)
-    mg_bthing_mqtt_force_update_states();
+    // force to publish all bThing states (and the shadow consequently)
+    mgos_bthing_update_states(true, MGOS_BTHING_FILTER_BY_NOTHING);
     return; // DONE
   }
   
@@ -375,7 +364,7 @@ static void mg_bthing_mqtt_on_device_get_state(struct mg_connection *nc, const c
                                                int topic_len, const char *msg, int msg_len, void *ud) {
   if (!mg_bthing_mqtt_use_shadow()) {
     // force to update all bThing states
-    mg_bthing_mqtt_force_update_states();
+    mgos_bthing_update_states(true, MGOS_BTHING_FILTER_BY_NOTHING);
   }
   (void) nc; (void) topic; (void) topic_len; (void) msg; (void) msg_len; (void) ud;
 }
@@ -546,7 +535,6 @@ bool mg_bthing_mqtt_sub_topics() {
 
 bool mgos_bthing_mqtt_init() {
   // init context
-  s_ctx.force_pub = false;
   s_ctx.state_updated_topic = NULL;
 
   // initialize pub/sub MQTT topics

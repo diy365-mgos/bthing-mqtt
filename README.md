@@ -94,6 +94,7 @@ Example - The example below shows the sahdow state document of a device that hos
   "switch_01": "ON",
   "flow_01": {
     "flowRate": 0.56,
+    "partialFlow": 0.66,
     "totalFlow": 1.66
   },
   "lights": {         

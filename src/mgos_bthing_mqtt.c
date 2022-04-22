@@ -12,7 +12,6 @@
 #endif
 
 static struct mg_bthing_shadow_ctx {
-  bool force_pub; 
   char *state_updated_topic;
 } s_ctx;
 
@@ -76,7 +75,7 @@ static bool mg_bthing_mqtt_update_item_state(const char* id_or_domain, const cha
   mgos_bthing_t thing = (domain ? mgos_bthing_get_by_id(id_or_domain, domain) : mgos_bthing_get_by_id(id_or_domain, NULL));
   struct mg_bthing_mqtt_item *item = mg_bthing_mqtt_get_item(thing);
   //if (item && !item->enabled) return false;
-  if (item && mg_bthing_has_flag(item->thing, MG_BTHING_FLAG_ISPRIVATE)) return false;
+  if (mg_bthing_has_flag(item->thing, MG_BTHING_FLAG_ISPRIVATE)) return false;
 
   if (item) {
     // update and publish thing's state
@@ -97,7 +96,7 @@ static bool mg_bthing_mqtt_set_item_state(const char* id_or_domain, const char *
   mgos_bthing_t thing = (domain ? mgos_bthing_get_by_id(id_or_domain, domain) : mgos_bthing_get_by_id(id_or_domain, NULL));
   struct mg_bthing_mqtt_item *item = mg_bthing_mqtt_get_item(thing);
   //if (item && !item->enabled) return false;
-  if (item && mg_bthing_has_flag(item->thing, MG_BTHING_FLAG_ISPRIVATE)) return false;
+  if (mg_bthing_has_flag(item->thing, MG_BTHING_FLAG_ISPRIVATE)) return false;
 
   mgos_bvar_t var_state = NULL;
   if (!mgos_bvar_json_try_bscanf(state, state_len, &var_state)) {
@@ -208,35 +207,47 @@ static bool mg_bthing_mqtt_pub_state(const char *topic, mgos_bvarc_t state) {
   return false;
 }
 
-static bool mg_bthing_mqtt_try_pub_state(void *state_data) {
-  if (!mgos_mqtt_global_is_connected()) return false;
-  
-  #ifdef MGOS_BTHING_HAVE_SHADOW
-  if (mg_bthing_mqtt_use_shadow()) {
-    mgos_bvarc_t state = NULL;
-    if (s_ctx.force_pub || !mgos_sys_config_get_bthing_mqtt_pub_delta_shadow()) {
-      state = ((struct mgos_bthing_shadow_state *)state_data)->full_shadow;
-    } else {
-      state = ((struct mgos_bthing_shadow_state *)state_data)->delta_shadow;
+static bool mg_bthing_mqtt_pub_thing_state(struct mgos_bthing_state *state_data) {
+  struct mg_bthing_mqtt_item *item = mg_bthing_mqtt_get_item(state_data->thing);
+  if (item) {
+    if (mg_bthing_mqtt_pub_state(item->state_updated_topic, ((struct mgos_bthing_state *)state_data)->state)) {
+      return true;
     }
-    if (!mg_bthing_mqtt_pub_state(s_ctx.state_updated_topic, state)) {
-      LOG(LL_ERROR, ("Error publishing '%s' shadow.", mgos_sys_config_get_device_id()));
-      return false;
-    }
+    LOG(LL_ERROR, ("Error publishing '%s' state.", mgos_bthing_get_uid(((struct mgos_bthing_state *)state_data)->thing)));
   }
-  #endif //MGOS_BTHING_HAVE_SHADOW
+  return false;
+}
 
-  if (!mg_bthing_mqtt_use_shadow()) {
-    struct mg_bthing_mqtt_item *item = mg_bthing_mqtt_get_item(((struct mgos_bthing_state *)state_data)->thing);
-    //if (item && item->enabled) {
-    if (item && !mg_bthing_has_flag(item->thing, MG_BTHING_FLAG_ISPRIVATE)) {
-      if (!mg_bthing_mqtt_pub_state(item->state_updated_topic, ((struct mgos_bthing_state *)state_data)->state)) {
-        LOG(LL_ERROR, ("Error publishing '%s' state.", mgos_bthing_get_uid(((struct mgos_bthing_state *)state_data)->thing)));
-        return false;
-      }
-    }
+#ifdef MGOS_BTHING_HAVE_SHADOW
+static bool mg_bthing_mqtt_pub_shadow_state(struct mgos_bthing_shadow_state *state_data) {
+  mgos_bvarc_t state = NULL;
+  if (!mgos_sys_config_get_bthing_mqtt_pub_delta_shadow() || ((state_data->flags & MGOS_BTHING_STATE_FLAG_FORCED_PUB) == MGOS_BTHING_STATE_FLAG_FORCED_PUB)) {
+    // use of delta-shadow is disabled or a forced publish was requested
+    state = state_data->full_shadow;
+  } else {
+    state = state_data->delta_shadow;
+  }
+  if (!mg_bthing_mqtt_pub_state(s_ctx.state_updated_topic, state)) {
+    LOG(LL_ERROR, ("Error publishing '%s' shadow.", mgos_sys_config_get_device_id()));
+    return false;
   }
   return true;
+}
+#endif //MGOS_BTHING_HAVE_SHADOW
+
+static bool mg_bthing_mqtt_try_pub_state(void *state_data) {
+  if (mgos_mqtt_global_is_connected()) {
+    #ifdef MGOS_BTHING_HAVE_SHADOW
+    if (mg_bthing_mqtt_use_shadow()) {
+      return mg_bthing_mqtt_pub_shadow_state((struct mgos_bthing_shadow_state *)state_data);
+    }
+    #endif //MGOS_BTHING_HAVE_SHADOW
+
+    if (!mg_bthing_mqtt_use_shadow()) {
+      return mg_bthing_mqtt_pub_thing_state((struct mgos_bthing_state *)state_data);
+    }
+  }
+  return false;
 }
 
 // static void mg_bthing_mqtt_on_state_changed(int ev, void *ev_data, void *userdata) {
@@ -267,22 +278,29 @@ static bool mg_bthing_mqtt_try_pub_state(void *state_data) {
 //   (void) ev;
 // }
 
-static void mg_bthing_mqtt_on_state_updated(int ev, void *ev_data, void *userdata) {
-  enum mgos_bthing_state_flag state_flags = MGOS_BTHING_STATE_FLAG_UNCHANGED;
-  #ifdef MGOS_BTHING_HAVE_SHADOW
-  if (mg_bthing_mqtt_use_shadow()) {
-    state_flags = ((struct mgos_bthing_shadow_state *)ev_data)->state_flags;
-  }
-  #endif //MGOS_BTHING_HAVE_SHADOW
+// static void mg_bthing_mqtt_on_state_updated(int ev, void *ev_data, void *userdata) {
+//   enum mgos_bthing_state_flag state_flags = MGOS_BTHING_STATE_FLAG_UNCHANGED;
+//   #ifdef MGOS_BTHING_HAVE_SHADOW
+//   if (mg_bthing_mqtt_use_shadow()) {
+//     state_flags = ((struct mgos_bthing_shadow_state *)ev_data)->state_flags;
+//   }
+//   #endif //MGOS_BTHING_HAVE_SHADOW
 
-  if (!mg_bthing_mqtt_use_shadow()) {
-    state_flags = ((struct mgos_bthing_state *)ev_data)->state_flags;
-  }
+//   if (!mg_bthing_mqtt_use_shadow()) {
+//     state_flags = ((struct mgos_bthing_state *)ev_data)->state_flags;
+//   }
 
-  if (((state_flags & MGOS_BTHING_STATE_FLAG_CHANGED) == MGOS_BTHING_STATE_FLAG_CHANGED) || s_ctx.force_pub) {
-    // The state is changed or the /state/get topic has been invoked
-    mg_bthing_mqtt_try_pub_state(ev_data);
-  }
+//   if (((state_flags & MGOS_BTHING_STATE_FLAG_CHANGED) == MGOS_BTHING_STATE_FLAG_CHANGED) || s_ctx.force_pub) {
+//     // The state is changed or the /state/get topic has been invoked
+//     mg_bthing_mqtt_try_pub_state(ev_data);
+//   }
+
+//   (void) userdata;
+//   (void) ev;
+// }
+
+static void mg_bthing_mqtt_on_state_publishing(int ev, void *ev_data, void *userdata) {
+  mg_bthing_mqtt_try_pub_state(ev_data);
 
   (void) userdata;
   (void) ev;
@@ -563,8 +581,12 @@ bool mgos_bthing_mqtt_init() {
     //   LOG(LL_ERROR, ("Error registering MGOS_EV_BTHING_SHADOW_CHANGED handler."));
     //   return false;
     // }
-    if (!mgos_event_add_handler(MGOS_EV_BTHING_SHADOW_UPDATED, mg_bthing_mqtt_on_state_updated, NULL)) {
-      LOG(LL_ERROR, ("Error registering MGOS_EV_BTHING_SHADOW_UPDATED handler."));
+    // if (!mgos_event_add_handler(MGOS_EV_BTHING_SHADOW_UPDATED, mg_bthing_mqtt_on_state_updated, NULL)) {
+    //   LOG(LL_ERROR, ("Error registering MGOS_EV_BTHING_SHADOW_UPDATED handler."));
+    //   return false;
+    // }
+    if (!mgos_event_add_handler(MGOS_EV_BTHING_SHADOW_PUBLISHING, mg_bthing_mqtt_on_state_publishing, NULL)) {
+      LOG(LL_ERROR, ("Error registering MGOS_EV_BTHING_SHADOW_PUBLISHING handler."));
       return false;
     }
   }
@@ -574,8 +596,12 @@ bool mgos_bthing_mqtt_init() {
     //   LOG(LL_ERROR, ("Error registering MGOS_EV_BTHING_STATE_CHANGED handler."));
     //   return false;
     // }
-    if (!mgos_event_add_handler(MGOS_EV_BTHING_STATE_UPDATED, mg_bthing_mqtt_on_state_updated, NULL)) {
-      LOG(LL_ERROR, ("Error registering MGOS_EV_BTHING_STATE_UPDATED handler."));
+    // if (!mgos_event_add_handler(MGOS_EV_BTHING_STATE_UPDATED, mg_bthing_mqtt_on_state_updated, NULL)) {
+    //   LOG(LL_ERROR, ("Error registering MGOS_EV_BTHING_STATE_UPDATED handler."));
+    //   return false;
+    // }
+    if (!mgos_event_add_handler(MGOS_EV_BTHING_STATE_PUBLISHING, mg_bthing_mqtt_on_state_publishing, NULL)) {
+      LOG(LL_ERROR, ("Error registering MGOS_EV_BTHING_STATE_PUBLISHING handler."));
       return false;
     }
   }

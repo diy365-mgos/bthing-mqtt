@@ -221,7 +221,8 @@ static bool mg_bthing_mqtt_pub_thing_state(struct mgos_bthing_state *state_data)
 #ifdef MGOS_BTHING_HAVE_SHADOW
 static bool mg_bthing_mqtt_pub_shadow_state(struct mgos_bthing_shadow_state *state_data) {
   mgos_bvarc_t state = NULL;
-  if (!mgos_sys_config_get_bthing_mqtt_pub_delta_shadow() || ((state_data->flags & MGOS_BTHING_STATE_FLAG_FORCED_PUB) == MGOS_BTHING_STATE_FLAG_FORCED_PUB)) {
+  if (!mgos_sys_config_get_bthing_mqtt_pub_delta_shadow() || 
+      ((state_data->state_flags & MGOS_BTHING_STATE_FLAG_FORCED_PUB) == MGOS_BTHING_STATE_FLAG_FORCED_PUB)) {
     // use of delta-shadow is disabled or a forced publish was requested
     state = state_data->full_shadow;
   } else {

@@ -148,15 +148,5 @@ The library sets these `mqtt` section settings as well:
   "will_message": "offline"
 }
 ```
-<!-- ## C/C++ API Reference
-### mgos_bthing_mqtt_disable
-```c
-bool mgos_bthing_mqtt_disable(mgos_bthing_t thing);
-```
-Disables MQTT messages for a bThing. Returns `true` on success, or `false` otherwise. If Shadow mode is enabled, the function [mgos_bthing_shadow_disable()](https://github.com/diy365-mgos/bthing-shadow#mgos_bthing_shadow_disable) is automatically invoked behind the scenes.
-
-|Parameter||
-|--|--| 
-|thing|A bThing.| -->
 ## To Do
 - Implement javascript APIs for [Mongoose OS MJS](https://github.com/mongoose-os-libs/mjs).

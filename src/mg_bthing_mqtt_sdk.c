@@ -32,7 +32,6 @@ struct mg_bthing_mqtt_item *mg_bthing_mqtt_add_item(mgos_bthing_t thing) {
   if (thing) {
     struct mg_bthing_mqtt_item *item = calloc(1, sizeof(struct mg_bthing_mqtt_item));
     item->thing = thing;
-    //item->enabled = false;
     if (!s_mqtt_items) {
       s_mqtt_items = item;
     } else {

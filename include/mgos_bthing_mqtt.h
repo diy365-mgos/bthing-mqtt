@@ -58,8 +58,6 @@ extern "C" {
 #define MGOS_BTHING_MQTT_VERB_GET       "get"
 #define MGOS_BTHING_MQTT_VERB_SET       "set"
 
-//bool mgos_bthing_mqtt_disable(mgos_bthing_t thing);
-
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */

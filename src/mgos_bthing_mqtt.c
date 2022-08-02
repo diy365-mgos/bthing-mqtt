@@ -163,6 +163,7 @@ static bool mg_bthing_mqtt_register_item(mgos_bthing_t thing) {
     mgos_bthing_get_uid(thing), item->state_updated_topic));
 
   //mg_bthing_mqtt_enable(thing);
+  return true;
 }
 
 static void mg_bthing_mqtt_register_items() {

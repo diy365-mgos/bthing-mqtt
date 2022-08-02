@@ -95,18 +95,28 @@ static bool mg_bthing_mqtt_set_item_state(const char* id_or_domain, const char *
 
 #endif // MGOS_BTHING_HAVE_ACTUATORS
 
-static void mg_bthing_mqtt_on_event(struct mg_connection *nc,
-                                     int ev,
-                                     void *ev_data,
-                                     void *user_data) {  
+// static void mg_bthing_mqtt_on_event(struct mg_connection *nc,
+//                                      int ev,
+//                                      void *ev_data,
+//                                      void *user_data) {  
+//   if (ev == MG_EV_MQTT_CONNACK) {
+//     mg_bthing_mqtt_pub_ping_response();
+//   } else if (ev == MG_EV_MQTT_DISCONNECT) {
+//     // todo
+//   }
+//   (void) ev_data;
+//   (void) nc;
+//   (void) user_data;
+// }
+
+static void mg_bthing_mqtt_on_event(int ev, void *ev_data, void *userdata) {
   if (ev == MG_EV_MQTT_CONNACK) {
     mg_bthing_mqtt_pub_ping_response();
   } else if (ev == MG_EV_MQTT_DISCONNECT) {
     // todo
   }
   (void) ev_data;
-  (void) nc;
-  (void) user_data;
+  (void) userdata;
 }
 
 #if MGOS_BTHING_HAVE_ACTUATORS
@@ -539,7 +549,11 @@ bool mgos_bthing_mqtt_init() {
   }
   #endif //MGOS_BTHING_HAVE_SENSORS
 
-  mgos_mqtt_add_global_handler(mg_bthing_mqtt_on_event, NULL);
+  //mgos_mqtt_add_global_handler(mg_bthing_mqtt_on_event, NULL);
+  if (!mgos_event_add_handler(MG_EV_MQTT_CONNACK, mg_bthing_mqtt_on_event, NULL)) {
+    LOG(LL_ERROR,("Unable to register MG_EV_MQTT_CONNACK handler."));
+    return false;
+  }
 
   return true;
 }

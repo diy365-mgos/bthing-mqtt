@@ -51,7 +51,7 @@ static void mg_bthing_mqtt_pub_ping_response() {
 static bool mg_bthing_mqtt_update_item_state(const char* id_or_domain, const char *domain) {
   mgos_bthing_t thing = (domain ? mgos_bthing_get_by_id(id_or_domain, domain) : mgos_bthing_get_by_id(id_or_domain, NULL));
   struct mg_bthing_mqtt_item *item = mg_bthing_mqtt_get_item(thing);
-  if (mg_bthing_has_flag(item->thing, MG_BTHING_FLAG_ISPRIVATE)) return false;
+  if (mgos_bthing_is_private(item->thing)) return false;
 
   if (item) {
     // update and publish thing's state
@@ -71,7 +71,7 @@ static bool mg_bthing_mqtt_set_item_state(const char* id_or_domain, const char *
 
   mgos_bthing_t thing = (domain ? mgos_bthing_get_by_id(id_or_domain, domain) : mgos_bthing_get_by_id(id_or_domain, NULL));
   struct mg_bthing_mqtt_item *item = mg_bthing_mqtt_get_item(thing);
-  if (mg_bthing_has_flag(item->thing, MG_BTHING_FLAG_ISPRIVATE)) return false;
+  if (mgos_bthing_is_private(item->thing)) return false;
 
   mgos_bvar_t var_state = NULL;
   if (!mgos_bvar_json_try_bscanf(state, state_len, &var_state)) {
@@ -123,7 +123,7 @@ void mg_bthing_mqtt_on_set_state(struct mg_connection *nc, const char *topic,
 
   if (!mg_bthing_mqtt_use_shadow()) {
     struct mg_bthing_mqtt_item *item = (struct mg_bthing_mqtt_item *)ud; 
-    if (item && !mg_bthing_has_flag(item->thing, MG_BTHING_FLAG_ISPRIVATE)) {
+    if (item && !mgos_bthing_is_private(item->thing)) {
       mgos_bvar_t state = NULL;
       if (!mgos_bvar_json_try_bscanf(msg, msg_len, &state)) {
         state = mgos_bvar_new_nstr(msg, msg_len);
@@ -139,11 +139,14 @@ void mg_bthing_mqtt_on_set_state(struct mg_connection *nc, const char *topic,
 }
 #endif //MGOS_BTHING_HAVE_ACTUATORS
 
-static void mg_bthing_mqtt_on_created(int ev, void *ev_data, void *userdata) {
-  if (ev != MGOS_EV_BTHING_CREATED) return;
-  mgos_bthing_t thing = (mgos_bthing_t)ev_data;
+static bool mg_bthing_mqtt_register_item(mgos_bthing_t thing) {
+  if (!thing) return false;
+  if (mgos_bthing_is_private(thing)) return false;
+
+  struct mg_bthing_mqtt_item *item = mg_bthing_mqtt_get_item(thing);
+  if (item) return true; // already added
   
-  struct mg_bthing_mqtt_item *item = mg_bthing_mqtt_add_item(thing);
+  item = mg_bthing_mqtt_add_item(thing);
 
   const char *domain = mgos_bthing_get_domain(thing);
   if (domain) {
@@ -160,6 +163,20 @@ static void mg_bthing_mqtt_on_created(int ev, void *ev_data, void *userdata) {
     mgos_bthing_get_uid(thing), item->state_updated_topic));
 
   //mg_bthing_mqtt_enable(thing);
+}
+
+static void mg_bthing_mqtt_register_items() {
+  mgos_bthing_t thing = NULL;
+  mgos_bthing_enum_t things_enum = mgos_bthing_get_all();
+  while(mgos_bthing_get_next(&things_enum, &thing)) {
+    mg_bthing_mqtt_register_item(thing);
+  }
+}
+
+static void mg_bthing_mqtt_on_created(int ev, void *ev_data, void *userdata) {
+  if (ev == MGOS_EV_BTHING_CREATED) {
+    mg_bthing_mqtt_register_item((mgos_bthing_t)ev_data);
+  }
 }
 
 #if MGOS_BTHING_HAVE_SENSORS
@@ -494,6 +511,10 @@ bool mgos_bthing_mqtt_init() {
   }
 
   if (!mg_bthing_mqtt_use_shadow()) {
+    // Register all bThigs that have been created before
+    // the library initialization.
+    mg_bthing_mqtt_register_items();
+
     if (!mgos_event_add_handler(MGOS_EV_BTHING_CREATED, mg_bthing_mqtt_on_created, NULL)) {
       LOG(LL_ERROR, ("Error registering MGOS_EV_BTHING_CREATED handler."));
       return false;

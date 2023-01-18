@@ -19,7 +19,6 @@ config_schema:
   - ["bthing.mqtt.retain", b, false, {title: "Default MQTT retain value for publishing messages"}]
   - ["bthing.mqtt.topic_prefix", s, "$bthings", {title: "Default MQTT topic's prefix"}]
   
-  - ["mqtt.enable", true]
   - ["mqtt.will_message", "offline"]
 
 libs:

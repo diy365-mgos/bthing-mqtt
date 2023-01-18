@@ -143,7 +143,6 @@ In addition, following settings are available in `bthing.mqtt` section when the 
 The library sets these `mqtt` section settings as well:
 ```javascript
 {
-  "enable": true,
   "will_topic": "{topic_prefix}/{device_id}/LWT",
   "will_message": "offline"
 }
